@@ -19,8 +19,6 @@ from settings import (
 # -----------------------------
 # Vector helper functions
 # -----------------------------
-
-
 def vec_length(v):
     """Return the length (magnitude) of a 2D vector."""
     return math.sqrt(v[0]**2 + v[1]**2)
@@ -58,7 +56,6 @@ def vec_limit(v, max_value):
     return v
 
 # ---------------- Base behaviours ----------------
-
 
 def seek(pos, vel, target, max_speed):
     """
@@ -152,41 +149,25 @@ def boids_separation(me_pos, neighbors, sep_radius):
     steering_sum = (0, 0)
     count = 0
 
-    for other in neighbors:
-        # if other is self:
-        #     continue
-
+    for neighbor_pos, neighbor_vel in neighbors:
         # Distance between self and other
-        distance = vec_length(vec_sub(me_pos, other.neightbor_pos))
+        distance = vec_length(vec_sub(me_pos, neighbor_pos))
 
         # Only consider boids that are within half the perception distance
-        if 0 < distance < sep_radius / 2:
+        if 0 < distance < sep_radius:
             # Direction away from the neighbor
-            diff = vec_sub(me_pos, other.neightbor_pos)
+            diff = vec_sub(me_pos, neighbor_pos)
             diff = vec_normalize(diff)
-
             # Closer boids have stronger effect (1 / distance)
             diff = vec_mul(diff, 1 / distance)
-
             steering_sum = vec_add(steering_sum, diff)
             count += 1
 
     if count > 0:
         # Average steering direction
         steering_sum = vec_mul(steering_sum, 1 / count)
-
-        # # Turn this into a desired velocity
-        # desired = vec_normalize(steering_sum)
-        # desired = vec_mul(desired, self.max_speed)
-
-        # # Steering = desired - current velocity
-        # steer = vec_sub(desired, self.velocity)
-        # steer = vec_limit(steer, self.max_force * 1.5)  # separation a bit stronger
-        # return steer
-
-        # Normalize to get the final steering direction
+        # Turn this into a desired velocity
         steering_sum = vec_normalize(steering_sum)
-
         return steering_sum
 
     # No close neighbors -> no separation force
@@ -203,12 +184,12 @@ def boids_cohesion(me_pos, neighbors):
     center_of_mass = (0, 0)
     count = 0
 
-    for other in neighbors:
-        # distance = vec_length(vec_sub(me_pos, other.position))
+    for neighbor_pos, neighbor_vel in neighbors:
+        distance = vec_length(vec_sub(me_pos, neighbor_pos))
         # Consider neighbors within perception radius
-        # if distance < self.perception:
-        center_of_mass = vec_add(center_of_mass, other.position)
-        count += 1
+        if distance < self.perception:    
+            center_of_mass = vec_add(center_of_mass, neighbor_pos)
+            count += 1
 
     if count > 0:
         # Average position of neighbors
@@ -230,7 +211,7 @@ def boids_alignment(me_vel, neighbors):
     avg_velocity = (0, 0)
     count = 0
 
-    for other in neighbors:
+    for neighbor_pos, neighbor_vel in neighbors:
         # if other is self:
         #     continue
         # distance = vec_length(vec_sub(me_pos, other.position))
