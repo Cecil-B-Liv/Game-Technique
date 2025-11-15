@@ -12,13 +12,15 @@ import math
 from pygame.math import Vector2 as V2
 from utils import limit, circlecast_hits_any_rect
 from settings import (
-    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS,
+    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS, FLY_SPEED, NEIGHBOR_RADIUS,
     AVOID_LOOKAHEAD, AVOID_ANGLE_INCREMENT, AVOID_MAX_ANGLE
 )
 
 # -----------------------------
 # Vector helper functions
 # -----------------------------
+
+
 def vec_length(v):
     """Return the length (magnitude) of a 2D vector."""
     return math.sqrt(v[0]**2 + v[1]**2)
@@ -57,6 +59,7 @@ def vec_limit(v, max_value):
 
 # ---------------- Base behaviours ----------------
 
+
 def seek(pos, vel, target, max_speed):
     """
     Move toward a target. Returns a steering force.
@@ -69,7 +72,7 @@ def seek(pos, vel, target, max_speed):
     desired = vec_mul(desired, max_speed)
     steer = vec_sub(desired, vel)
     steer = vec_limit(steer, max_speed)
-    return steer
+    return V2(steer)
 
     # d = target - pos
     # if d.length_squared() == 0:
@@ -92,7 +95,7 @@ def flee(pos, vel, target, max_speed):
     desired = vec_mul(desired, max_speed)
     steer = vec_sub(desired, vel)
     steer = vec_limit(steer, max_speed)
-    return steer
+    return V2(steer)
 
 
 # TASK A- Arrival behaviour
@@ -119,7 +122,7 @@ def arrive(pos, vel, target, max_speed, slow_radius=ARRIVE_SLOW_RADIUS, stop_rad
     desired = vec_mul(desired, scaled_speed)
     steer = vec_sub(desired, vel)
     steer = vec_limit(steer, max_speed)
-    return steer
+    return V2(steer)
 
 
 def integrate_velocity(vel, force, dt, max_speed):
@@ -135,6 +138,8 @@ def integrate_velocity(vel, force, dt, max_speed):
 
 # ---------------- Boids components ----------------
 # TASK B- Boids Flocking
+
+# Note: In the fly.py file, they call these functions and already handle the steering weights. So here we just compute the pure steering directions.
 
 
 def boids_separation(me_pos, neighbors, sep_radius):
@@ -153,7 +158,7 @@ def boids_separation(me_pos, neighbors, sep_radius):
         # Distance between self and other
         distance = vec_length(vec_sub(me_pos, neighbor_pos))
 
-        # Only consider boids that are within half the perception distance
+        # Changed perception to sep_radius here for clarity
         if 0 < distance < sep_radius:
             # Direction away from the neighbor
             diff = vec_sub(me_pos, neighbor_pos)
@@ -164,14 +169,15 @@ def boids_separation(me_pos, neighbors, sep_radius):
             count += 1
 
     if count > 0:
-        # Average steering direction
-        steering_sum = vec_mul(steering_sum, 1 / count)
-        # Turn this into a desired velocity
-        steering_sum = vec_normalize(steering_sum)
-        return steering_sum
+        # We have no self.velocity here, so just normalize the sum
+        # For each neighbor inside sep_radius, add a vector pointing away with
+        # magnitude inversely proportional to distance. Normalize at the end.
+        # Average and normalize
+        steering_sum = vec_mul(steering_sum, 1.0 / count)
+        return V2(vec_normalize(steering_sum))  # Pure direction
 
     # No close neighbors -> no separation force
-    return (0, 0)
+    return V2(0, 0)
 
 
 def boids_cohesion(me_pos, neighbors):
@@ -185,20 +191,21 @@ def boids_cohesion(me_pos, neighbors):
     count = 0
 
     for neighbor_pos, neighbor_vel in neighbors:
-        distance = vec_length(vec_sub(me_pos, neighbor_pos))
-        # Consider neighbors within perception radius
-        if distance < self.perception:    
-            center_of_mass = vec_add(center_of_mass, neighbor_pos)
-            count += 1
+        center_of_mass = vec_add(center_of_mass, neighbor_pos)
+        count += 1
 
     if count > 0:
         # Average position of neighbors
         center_of_mass = vec_mul(center_of_mass, 1 / count)
 
-        # Use seek to move toward this center point
-        return seek(center_of_mass)
+        # Direction toward center
+        desired = vec_sub(center_of_mass, me_pos)
 
-    return (0, 0)
+        # Use seek to move toward this center point
+        if vec_length(desired) > 0:  # Avoid division by zero
+            return V2(vec_normalize(desired))
+
+    return V2(0, 0)
 
 
 def boids_alignment(me_vel, neighbors):
@@ -212,48 +219,21 @@ def boids_alignment(me_vel, neighbors):
     count = 0
 
     for neighbor_pos, neighbor_vel in neighbors:
-        # if other is self:
-        #     continue
-        # distance = vec_length(vec_sub(me_pos, other.position))
-        # Consider neighbors within perception radius
-        # if distance < self.perception:
-        avg_velocity = vec_add(avg_velocity, other.position)
+        avg_velocity = vec_add(avg_velocity, neighbor_vel)
         count += 1
 
     if count > 0:
         # Average the neighbor velocities
         avg_velocity = vec_mul(avg_velocity, 1 / count)
 
-        # # Turn into desired velocity
-        # desired = vec_normalize(steering_sum )
-        # desired = vec_mul(desired, self.max_speed)
-
-        # # Steering force to adjust current velocity toward desired
-        # steer = vec_sub(desired, self.velocity)
-        # steer = vec_limit(steer, self.max_force)
+        # Direction to match average heading
         steer = vec_sub(avg_velocity, me_vel)
-        steer = vec_normalize(steer)
-        return steer
+        if vec_length(steer) > 0:
+            return V2(vec_normalize(steer))
 
-    return (0, 0)
+    return V2(0, 0)
 
 # ---------------- Obstacle avoidance blend ----------------
-
-def avoid_obstacles(self, obstacles):
-  """Steer away from any obstacle that is too close."""
-  total = (0, 0)
-  for o in obstacles:
-      to_obs = vec_sub(o.pos, self.position)
-      dist = vec_length(to_obs)
-      safe = o.radius + 25  # safety margin around obstacle
-      if 0 < dist < safe:
-          # Compute steering force directly away from obstacle center
-          away = vec_mul(vec_normalize(
-              vec_sub(self.position, o.pos)), self.max_speed)
-          steer = vec_limit(vec_sub(away, self.velocity),
-                            self.max_force * 2)
-          total = vec_add(total, steer)
-  return total
 
 def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
     """
@@ -263,11 +243,61 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
       2. If blocked, rotate small angles left and right until a free path is found
       3. Use that direction for the seek
       4. If all blocked, apply a small braking force
-    Use circlecast_hits_any_rect to test each corridor.
+    Use circlecast_hits_any_rect(p0, p1, radius, rects, step=6.0) to test each corridor.
     """
-    # raise NotImplementedError(
-    #     "Implement angled corridor search with circle casts")
-    avoid = avoid_obstacles(rects)
+    # Direction to target
+    to_target = vec_sub(target, pos)
+    distance_to_target = vec_length(to_target)
+
+    if distance_to_target == 0:
+        return V2(0, 0)
+
+    direction = vec_normalize(to_target)
+
+    # --- 1. Try straight path first ---
+    end_pos = vec_add(pos, vec_mul(direction, lookahead))
+
+    if not circlecast_hits_any_rect(pos, end_pos, radius, rects):
+        # Path is clear! Use normal seek
+        return V2(seek(pos, vel, target, max_speed))
+
+    # --- 2. Path blocked, try angled corridors ---
+    angle = 0
+
+    while angle <= AVOID_MAX_ANGLE:
+        # Try both left and right at this angle
+        for sign in [1, -1]:  # +angle (left), -angle (right)
+            test_angle = angle * sign
+
+            # Rotate direction by test_angle
+            angle_rad = math.radians(test_angle)
+            cos_a = math.cos(angle_rad)
+            sin_a = math.sin(angle_rad)
+
+            # Rotate the direction vector
+            rotated_x = direction[0] * cos_a - direction[1] * sin_a
+            rotated_y = direction[0] * sin_a + direction[1] * cos_a
+            rotated_dir = (rotated_x, rotated_y)
+
+            # Test this corridor
+            test_end = vec_add(pos, vec_mul(rotated_dir, lookahead))
+
+            if not circlecast_hits_any_rect(pos, test_end, radius, rects):
+                # Found a clear path! Seek in this direction
+                temp_target = vec_add(pos, vec_mul(rotated_dir, lookahead * 2))
+                return V2(seek(pos, vel, temp_target, max_speed))
+
+        # Increment angle and try again
+        angle += AVOID_ANGLE_INCREMENT
+
+    # --- 3. All paths blocked, apply braking ---
+    # Return force opposite to velocity to slow down
+    if vec_length(vel) > 0:
+        brake = vec_normalize(vel)
+        brake = vec_mul(brake, -max_speed * 0.3)  # Gentle brake
+        return V2(brake)
+
+    return V2(0, 0)
 
 
 # ---------------- New behaviours to be implemented ----------------
