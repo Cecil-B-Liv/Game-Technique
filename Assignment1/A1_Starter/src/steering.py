@@ -9,6 +9,7 @@
 # ============================================================================
 
 import math
+import random
 from pygame.math import Vector2 as V2
 from utils import limit, circlecast_hits_any_rect
 from settings import (
@@ -131,6 +132,9 @@ def integrate_velocity(vel, force, dt, max_speed):
     Then clamp to max speed and return the new velocity.
     Use this inside agent update methods after computing steering forces.
     """
+    # Handle integration and speed clamping
+    # Handle speed limit after applying force
+    # return the new velocity
     vel += limit(force, 500.0) * dt
     if vel.length() > max_speed:
         vel.scale_to_length(max_speed)
@@ -139,8 +143,8 @@ def integrate_velocity(vel, force, dt, max_speed):
 # ---------------- Boids components ----------------
 # TASK B- Boids Flocking
 
-# Note: In the fly.py file, they call these functions and already handle the steering weights. So here we just compute the pure steering directions.
-
+# Note: No need to handle self check and handle neighbor radius here.
+# The caller (Fly update) already does that.
 
 def boids_separation(me_pos, neighbors, sep_radius):
     """
@@ -150,7 +154,6 @@ def boids_separation(me_pos, neighbors, sep_radius):
       For each neighbor inside sep_radius, add a vector pointing away with
       magnitude inversely proportional to distance. Normalize at the end.
     """
-    # raise NotImplementedError("Implement boids separation")
     steering_sum = (0, 0)
     count = 0
 
@@ -169,12 +172,12 @@ def boids_separation(me_pos, neighbors, sep_radius):
             count += 1
 
     if count > 0:
-        # We have no self.velocity here, so just normalize the sum
-        # For each neighbor inside sep_radius, add a vector pointing away with
-        # magnitude inversely proportional to distance. Normalize at the end.
-        # Average and normalize
+        # Average the separation vectors
         steering_sum = vec_mul(steering_sum, 1.0 / count)
-        return V2(vec_normalize(steering_sum))  # Pure direction
+        # Normalize at the end for pure direction
+        if vec_length(steering_sum) > 0:
+            steering_sum = vec_normalize(steering_sum)
+        return V2(steering_sum)
 
     # No close neighbors -> no separation force
     return V2(0, 0)
@@ -186,7 +189,6 @@ def boids_cohesion(me_pos, neighbors):
     Typical approach
       Compute the center of mass of neighbors then steer toward that point.
     """
-    # raise NotImplementedError("Implement boids cohesion")
     center_of_mass = (0, 0)
     count = 0
 
@@ -197,11 +199,8 @@ def boids_cohesion(me_pos, neighbors):
     if count > 0:
         # Average position of neighbors
         center_of_mass = vec_mul(center_of_mass, 1 / count)
-
         # Direction toward center
         desired = vec_sub(center_of_mass, me_pos)
-
-        # Use seek to move toward this center point
         if vec_length(desired) > 0:  # Avoid division by zero
             return V2(vec_normalize(desired))
 
@@ -214,7 +213,6 @@ def boids_alignment(me_vel, neighbors):
     Typical approach
       Compute the average heading of neighbors then steer toward that heading.
     """
-    # raise NotImplementedError("Implement boids alignment")
     avg_velocity = (0, 0)
     count = 0
 
@@ -225,7 +223,6 @@ def boids_alignment(me_vel, neighbors):
     if count > 0:
         # Average the neighbor velocities
         avg_velocity = vec_mul(avg_velocity, 1 / count)
-
         # Direction to match average heading
         steer = vec_sub(avg_velocity, me_vel)
         if vec_length(steer) > 0:
@@ -234,6 +231,7 @@ def boids_alignment(me_vel, neighbors):
     return V2(0, 0)
 
 # ---------------- Obstacle avoidance blend ----------------
+
 
 def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
     """
@@ -308,12 +306,35 @@ def pursue(pos, vel, target_pos, target_vel, max_speed):
     Predict the future position of the target then seek that point.
     Suggested
       distance = |target_pos - pos|
-      time_horizon = distance / (max_speed + small_eps)
+      time_horizon = distance / (max_speed + small_eps) ?? whats small eps??
       predicted    = target_pos + target_vel * time_horizon
       return seek toward predicted
     Replace simple seek in Snake Aggro with pursue for better interception.
     """
-    raise NotImplementedError("Implement pursue with prediction")
+    # Step 1: Get distance to target's CURRENT position
+    to_target = vec_sub(target_pos, pos)
+    distance = vec_length(to_target)
+
+    # Step 2: Estimate how long it will take to reach the target
+    speed = vec_length(vel) if vec_length(vel) > 0 else max_speed
+    prediction_time = distance/speed  # velocity based
+
+    # Step 3: Predict where target will be in the future
+    # Formula: future_pos = current_pos + (velocity × time)
+    future_position = vec_add(
+        target_pos,
+        vec_mul(target_vel, prediction_time*0.5)  # tune factor
+    )
+
+    # Step 4: Calculate desired velocity toward PREDICTED position
+    desired = vec_sub(future_position, pos)
+    desired = vec_normalize(desired)
+    desired = vec_mul(desired, max_speed)
+
+    # Step 5: Calculate steering force (Reynolds steering formula)
+    steer = vec_sub(desired, vel)
+    # No limit needed here as wander is meant to be small
+    return steer
 
 
 def evade(pos, vel, threat_pos, threat_vel, max_speed):
@@ -321,7 +342,18 @@ def evade(pos, vel, threat_pos, threat_vel, max_speed):
     Predict the future position of a threat then flee from that point.
     This is the inverse of pursue. Use the same prediction idea.
     """
-    raise NotImplementedError("Implement evade as inverse of pursue")
+    # raise NotImplementedError("Implement evade as inverse of pursue")
+    to_pursuer = vec_sub(threat_pos, pos)
+    distance = vec_length(to_pursuer)
+    speed = vec_length(vel) if vec_length(vel) > 0 else max_speed
+    prediction_time = distance/speed
+    future_position = vec_add(threat_pos, vec_mul(
+        threat_vel, prediction_time*0.5))
+    desired = vec_sub(pos, future_position)
+    desired = vec_normalize(desired)
+    desired = vec_mul(desired, max_speed)
+    steer = vec_sub(desired, vel)
+    return steer
 
 
 def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18.0, rng_seed=None):
@@ -332,4 +364,22 @@ def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18
       target point on that circle by a tiny random angle each update.
     Use this for Fly Idle and Snake Confused.
     """
-    raise NotImplementedError("Implement wander_force")
+    # STEP 1: Randomly adjust the wander angle (random jitter between -jitter and +jitter)
+    wander_angle = random.uniform(-jitter_deg,
+                                   jitter_deg)
+
+    # STEP 2: Calculate circle center position ahead of the agent (in the direction of velocity)
+    circle_center = vec_mul(vec_normalize(
+        me_vel), circle_distance)
+
+    # STEP 3: Calculate displacement on circle edge
+    displacement = (
+        math.cos(wander_angle) * circle_radius,
+        math.sin(wander_angle) * circle_radius
+    )
+
+    # STEP 4: Combine center + displacement = target point
+    wander_force = vec_add(circle_center, displacement)
+
+    # No limit needed here as wander is meant to be small
+    return V2(wander_force)

@@ -25,16 +25,20 @@ from steering import (
     flee, evade, wander_force
 )
 
+
 class FlyState(Enum):
-    Flock   = auto()
+    Flock = auto()
     Fleeing = auto()
-    Idle    = auto()
+    Idle = auto()
+
 
 class Fly:
     def __init__(self, pos):
         self.pos = V2(pos)
         self.vel = V2(random.uniform(-1, 1), random.uniform(-1, 1))
+        # random initial velocity
         if self.vel.length_squared() == 0:
+            # if not moving, set to half speed in a random direction
             self.vel = V2(1, 0)
         self.vel.scale_to_length(FLY_SPEED * 0.5)
 
@@ -43,8 +47,8 @@ class Fly:
 
         # Timers and cached values
         self.scare_timer = 0.0   # counts down while nervous before calming
-        self.idle_timer  = 0.0   # time spent far from frog
-        self._rng_seed   = random.randint(0, 999999)
+        self.idle_timer = 0.0   # time spent far from frog
+        self._rng_seed = random.randint(0, 999999)
 
     def sense_bubbles_close(self, bubbles, r):
         """Return True if any bubble is within range r of the fly."""
@@ -67,15 +71,16 @@ class Fly:
         BubbleFleeRange = 140.0      # panic if bubble comes within this range
         StopFleeingRange = 220.0     # calm down when both frog and bubbles are beyond this
         IdleDistance = 380.0         # far enough to consider idling
-        IdleDelay    = 2.0           # seconds of safety before entering Idle
+        IdleDelay = 2.0           # seconds of safety before entering Idle
 
         # Triggers based on the frog and bubbles
         dist_to_frog = (frog.pos - self.pos).length()
-        scared_by_frog   = dist_to_frog < 160.0
+        scared_by_frog = dist_to_frog < 160.0
         scared_by_bubble = self.sense_bubbles_close(bubbles, BubbleFleeRange)
 
         # ---------------- FSM transitions ----------------
         if self.state == FlyState.Flock:
+            # while flocking, switch to fleeing if scared
             if scared_by_frog or scared_by_bubble:
                 self.state = FlyState.Fleeing
                 self.scare_timer = 0.6
@@ -89,7 +94,9 @@ class Fly:
                     self.idle_timer = 0.0
 
         elif self.state == FlyState.Fleeing:
-            calm = dist_to_frog > StopFleeingRange and not self.sense_bubbles_close(bubbles, StopFleeingRange)
+            # while fleeing, switch to flocking when calm for a while
+            calm = dist_to_frog > StopFleeingRange and not self.sense_bubbles_close(
+                bubbles, StopFleeingRange)
             if calm:
                 self.scare_timer -= dt
                 if self.scare_timer <= 0:
@@ -99,6 +106,7 @@ class Fly:
                 self.scare_timer = 0.6
 
         elif self.state == FlyState.Idle:
+            # turn to fleeing if scared, or flocking if frog gets close
             if scared_by_frog or scared_by_bubble:
                 self.state = FlyState.Fleeing
                 self.scare_timer = 0.6
@@ -111,16 +119,19 @@ class Fly:
             # Build neighbor list for boids
             neighbors = []
             for f in flies:
+                # Handle self in neighbor search
                 if f is self:
                     continue
+                # handle in range neighbor radius
                 if (f.pos - self.pos).length_squared() <= NEIGHBOR_RADIUS ** 2:
                     neighbors.append((f.pos, f.vel))
 
-            # TODO: compute boids forces
-            # sep = boids_separation(self.pos, neighbors, sep_radius=50.0)
-            # coh = boids_cohesion(self.pos, neighbors)
-            # ali = boids_alignment(self.vel, neighbors)
-            # force = sep * SEP_WEIGHT + coh * COH_WEIGHT + ali * ALI_WEIGHT
+            # TODO: compute boids forces 
+            # return vectors from the three boids functions
+            sep = boids_separation(self.pos, neighbors, sep_radius=50.0)
+            coh = boids_cohesion(self.pos, neighbors)
+            ali = boids_alignment(self.vel, neighbors)
+            force = sep * SEP_WEIGHT + coh * COH_WEIGHT + ali * ALI_WEIGHT
             force = V2()
 
             # Gentle anchor toward arena center to avoid drifting out of bounds
@@ -132,7 +143,7 @@ class Fly:
 
         elif self.state == FlyState.Fleeing:
             # TODO: replace simple flee with predictive evade for extra credit
-            # force = evade(self.pos, self.vel, frog.pos, frog.vel, FLY_SPEED)
+            force = evade(self.pos, self.vel, frog.pos, frog.vel, FLY_SPEED)
             force = flee(self.pos, self.vel, frog.pos, FLY_SPEED)
 
             # Anchor blend so the group does not disappear off screen
@@ -143,7 +154,7 @@ class Fly:
 
         elif self.state == FlyState.Idle:
             # TODO: use wander_force to provide gentle drifting
-            # force = wander_force(self.vel, rng_seed=self._rng_seed)
+            force = wander_force(self.vel, rng_seed=self._rng_seed)
             force = V2()
             self.vel += limit(force, 120.0) * dt
             self.vel *= 0.98  # mild damping so idle feels soft
@@ -155,14 +166,19 @@ class Fly:
 
         # Soft containment inside arena
         if self.pos.x < self.radius:
-            self.pos.x = self.radius; self.vel.x *= -0.4
+            self.pos.x = self.radius
+            self.vel.x *= -0.4
         if self.pos.x > WIDTH - self.radius:
-            self.pos.x = WIDTH - self.radius; self.vel.x *= -0.4
+            self.pos.x = WIDTH - self.radius
+            self.vel.x *= -0.4
         if self.pos.y < self.radius:
-            self.pos.y = self.radius; self.vel.y *= -0.4
+            self.pos.y = self.radius
+            self.vel.y *= -0.4
         if self.pos.y > HEIGHT - self.radius:
-            self.pos.y = HEIGHT - self.radius; self.vel.y *= -0.4
+            self.pos.y = HEIGHT - self.radius
+            self.vel.y *= -0.4
 
     def draw(self, surf):
-        color = YELLOW if self.state in (FlyState.Flock, FlyState.Idle) else PURPLE
+        color = YELLOW if self.state in (
+            FlyState.Flock, FlyState.Idle) else PURPLE
         pygame.draw.circle(surf, color, self.pos, self.radius)

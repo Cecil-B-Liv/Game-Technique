@@ -21,14 +21,17 @@ from settings import (
 from utils import clamp
 from steering import arrive, integrate_velocity
 
+
 class Bubble:
     """
     Simple projectile that moves in a straight line and pops after a short time.
     You can destroy it early when it hits a snake or an obstacle.
     """
+
     def __init__(self, pos, dir_vec):
         self.pos = V2(pos)
-        self.vel = (dir_vec.normalize() if dir_vec.length_squared() > 0 else V2(1, 0)) * BUBBLE_SPEED
+        self.vel = (dir_vec.normalize() if dir_vec.length_squared()
+                    > 0 else V2(1, 0)) * BUBBLE_SPEED
         self.birth = time.time()
         self.alive = True
 
@@ -40,6 +43,7 @@ class Bubble:
     def draw(self, surf):
         pygame.draw.circle(surf, BLUE, self.pos, BUBBLE_RADIUS)
         pygame.draw.circle(surf, WHITE, self.pos, BUBBLE_RADIUS, 2)
+
 
 class Frog:
     def __init__(self, pos):
@@ -80,7 +84,7 @@ class Frog:
         # Integrate velocity with dt and clamp to max speed
         self.vel = integrate_velocity(self.vel, steer, dt, self.speed)
 
-        # Move the frog
+        # Move the frog with integrated velocity
         self.pos += self.vel * dt
 
         # Face in the direction of motion when moving

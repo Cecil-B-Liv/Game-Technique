@@ -38,12 +38,14 @@ def main():
         frog = Frog((WIDTH * 0.5, HEIGHT * 0.5))
 
         # Randomly scatter flies inside the world bounds
+        # (ensure they don't spawn too close to edges)
         flies = [Fly((random.randint(60, WIDTH - 60), random.randint(60, HEIGHT - 60)))
                  for _ in range(NUM_FLIES)]
 
         # Create snakes with patrol points mirrored across the screen
         snakes = []
         for i in range(NUM_SNAKES):
+            # Patrol points
             px = 140 + i * 320
             py = 120 if i % 2 == 0 else HEIGHT - 140
             patrol = (WIDTH - px, HEIGHT - py)
@@ -52,6 +54,7 @@ def main():
         return world, frog, flies, snakes
 
     # Build initial state
+    # ---------------- Initial reset ----------------
     world, frog, flies, snakes = reset()
 
     # Game state for health, scoring, and endings
@@ -68,19 +71,18 @@ def main():
 
         # ---------------- Input ----------------
         for e in pygame.event.get():
-            if e.type == pygame.QUIT:
+            if e.type == pygame.QUIT: # Exit the game
                 running = False
 
-            if e.type == pygame.KEYDOWN:
+            if e.type == pygame.KEYDOWN: # Key press events
                 if e.key == pygame.K_ESCAPE:
                     running = False
 
-                if not game_over and e.key == pygame.K_SPACE:
+                if not game_over and e.key == pygame.K_SPACE: # Shoot a bubble
                     # Space shoots a bubble from the frog mouth
                     frog.shoot()
 
-                if game_over and e.key == pygame.K_r:
-                    # R restarts the whole scene
+                if game_over and e.key == pygame.K_r: # Restart the whole scene
                     world, frog, flies, snakes = reset()
                     health = START_HEALTH
                     fly_count = 0
@@ -103,6 +105,7 @@ def main():
                 # Eat a fly when close enough to the frog center
                 if (f.pos - frog.pos).length_squared() <= (f.radius + FROG_RADIUS) ** 2:
                     flies.remove(f)
+                    # Increment fly count and check for win condition
                     fly_count += 1
                     if fly_count >= FLIES_TO_WIN:
                         game_over = True
@@ -155,9 +158,9 @@ def main():
             cy = 18
             col = RED if i < health else (80, 60, 60)
             pygame.draw.circle(screen, col, (cx, cy), 10)
-        pygame.draw.circle(screen, col, (cx + 12, cy), 10)
+        # pygame.draw.circle(screen, col, (cx + 12, cy), 10)
         points = [(cx - 6, cy + 2), (cx + 18, cy + 2), (cx + 6, cy + 18)]
-        pygame.draw.polygon(screen, col, points)
+        # pygame.draw.polygon(screen, col, points)
 
         # Draw fly counter and control hint
         txt = font.render(f"Flies: {fly_count}/{FLIES_TO_WIN}", True, (240, 240, 240))
