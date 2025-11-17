@@ -20,7 +20,8 @@ from settings import (
 # -----------------------------
 # Vector helper functions
 # -----------------------------
-
+# These operate on 2D vectors represented as (x, y) tuples.
+# Get from the lab code btw
 
 def vec_length(v):
     """Return the length (magnitude) of a 2D vector."""
@@ -58,6 +59,23 @@ def vec_limit(v, max_value):
         return (v[0]*max_value, v[1]*max_value)
     return v
 
+def rotate_vector(vec, angle_deg):
+    """
+    Rotate a 2D vector by angle_deg degrees (counterclockwise).
+    Positive angle = left rotation
+    Negative angle = right rotation
+    """
+    import math
+    angle_rad = math.radians(angle_deg)
+    cos_a = math.cos(angle_rad)
+    sin_a = math.sin(angle_rad)
+
+    x, y = vec
+    new_x = x * cos_a - y * sin_a
+    new_y = x * sin_a + y * cos_a
+
+    return (new_x, new_y)
+
 # ---------------- Base behaviours ----------------
 
 
@@ -67,7 +85,6 @@ def seek(pos, vel, target, max_speed):
     desired = direction_to_target * max_speed
     steering = desired - current_velocity
     """
-
     desired = vec_sub(target, pos)
     desired = vec_normalize(desired)
     desired = vec_mul(desired, max_speed)
@@ -81,25 +98,30 @@ def seek(pos, vel, target, max_speed):
     # desired = d.normalize() * max_speed
     # return desired - vel
 
-# TASK C- Flee behaviour
-
 
 def flee(pos, vel, target, max_speed):
     """
     Move away from a target. This is the opposite of seek.
     You need to implement the mirror of seek using direction from threat to self.
     """
-    # raise NotImplementedError("Implement flee using the opposite of seek")
+    away = vec_sub(pos, target)
+    distance = vec_length(away)
+    away = vec_normalize(away)
 
-    desired = vec_sub(pos, target)
-    desired = vec_normalize(desired)
-    desired = vec_mul(desired, max_speed)
+    # Optional: increase flee speed when very close to threat
+    panic_radius = 200.0  # can be tuned
+    if distance < panic_radius:
+        intensity = panic_radius / distance
+        intensity = min(intensity, 3.0)  # Cap at 3x speed
+    else:
+        intensity = 1.0  # Normal flee speed when far
+
+    desired = vec_mul(away, max_speed * intensity)
     steer = vec_sub(desired, vel)
-    steer = vec_limit(steer, max_speed)
+
     return V2(steer)
 
 
-# TASK A- Arrival behaviour
 def arrive(pos, vel, target, max_speed, slow_radius=ARRIVE_SLOW_RADIUS, stop_radius=ARRIVE_STOP_RADIUS):
     """
     Like seek when far, but slow down near the target.
@@ -109,7 +131,6 @@ def arrive(pos, vel, target, max_speed, slow_radius=ARRIVE_SLOW_RADIUS, stop_rad
       Otherwise use full speed
     This should remove overshoot and jitter around the target.
     """
-    # raise NotImplementedError("Implement arrive with slow and stop radii")
     desired = vec_sub(target, pos)
     distance = vec_length(desired)
     if distance < 0.5:
@@ -145,6 +166,7 @@ def integrate_velocity(vel, force, dt, max_speed):
 
 # Note: No need to handle self check and handle neighbor radius here.
 # The caller (Fly update) already does that.
+
 
 def boids_separation(me_pos, neighbors, sep_radius):
     """
@@ -243,60 +265,62 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
       4. If all blocked, apply a small braking force
     Use circlecast_hits_any_rect(p0, p1, radius, rects, step=6.0) to test each corridor.
     """
-    # Direction to target
-    to_target = vec_sub(target, pos)
-    distance_to_target = vec_length(to_target)
+    # Calculate the desired direction toward target
+    desired_dir = vec_sub(target, pos)
+    distance_to_target = vec_length(desired_dir)
 
-    if distance_to_target == 0:
+    # If already at target, no steering needed
+    if distance_to_target < 0.01:
         return V2(0, 0)
 
-    direction = vec_normalize(to_target)
+    desired_dir = vec_normalize(desired_dir)
 
-    # --- 1. Try straight path first ---
-    end_pos = vec_add(pos, vec_mul(direction, lookahead))
+    # Calculate the lookahead endpoint (where we're "looking")
+    lookahead_dist = min(lookahead, distance_to_target)
+    lookahead_point = vec_add(pos, vec_mul(desired_dir, lookahead_dist))
 
-    if not circlecast_hits_any_rect(pos, end_pos, radius, rects):
-        # Path is clear! Use normal seek
-        return V2(seek(pos, vel, target, max_speed))
+    # Check if the straight path is clear
+    if not circlecast_hits_any_rect(pos, lookahead_point, radius, rects, step=6.0):
+        # Direct path is clear! Use normal seek
+        desired = vec_mul(desired_dir, max_speed)
+        steer = vec_sub(desired, vel)
+        return V2(steer)
 
-    # --- 2. Path blocked, try angled corridors ---
-    angle = 0
+    # Direct path blocked - try angled corridors
+    max_angle = 90.0  # Maximum angle to search (degrees)
+    angle_step = 15.0  # Increment angle (degrees)
 
-    while angle <= AVOID_MAX_ANGLE:
-        # Try both left and right at this angle
-        for sign in [1, -1]:  # +angle (left), -angle (right)
-            test_angle = angle * sign
+    best_dir = None
 
-            # Rotate direction by test_angle
-            angle_rad = math.radians(test_angle)
-            cos_a = math.cos(angle_rad)
-            sin_a = math.sin(angle_rad)
+    # Alternate between left and right angles
+    for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
+        # Try rotating LEFT
+        left_dir = rotate_vector(desired_dir, angle_deg)
+        left_point = vec_add(pos, vec_mul(left_dir, lookahead_dist))
 
-            # Rotate the direction vector
-            rotated_x = direction[0] * cos_a - direction[1] * sin_a
-            rotated_y = direction[0] * sin_a + direction[1] * cos_a
-            rotated_dir = (rotated_x, rotated_y)
+        if not circlecast_hits_any_rect(pos, left_point, radius, rects, step=6.0):
+            best_dir = left_dir
+            break
 
-            # Test this corridor
-            test_end = vec_add(pos, vec_mul(rotated_dir, lookahead))
+        # Try rotating RIGHT
+        right_dir = rotate_vector(desired_dir, -angle_deg)
+        right_point = vec_add(pos, vec_mul(right_dir, lookahead_dist))
 
-            if not circlecast_hits_any_rect(pos, test_end, radius, rects):
-                # Found a clear path! Seek in this direction
-                temp_target = vec_add(pos, vec_mul(rotated_dir, lookahead * 2))
-                return V2(seek(pos, vel, temp_target, max_speed))
+        if not circlecast_hits_any_rect(pos, right_point, radius, rects, step=6.0):
+            best_dir = right_dir
+            break
 
-        # Increment angle and try again
-        angle += AVOID_ANGLE_INCREMENT
-
-    # --- 3. All paths blocked, apply braking ---
-    # Return force opposite to velocity to slow down
-    if vec_length(vel) > 0:
-        brake = vec_normalize(vel)
-        brake = vec_mul(brake, -max_speed * 0.3)  # Gentle brake
+    #Apply steering based on result
+    if best_dir is not None:
+        # Found a clear path
+        desired = vec_mul(best_dir, max_speed)
+        steer = vec_sub(desired, vel)
+        return V2(steer)
+    else:
+        # All paths blocked - apply braking force to slow down
+        # Return a force opposite to current velocity
+        brake = vec_mul(vel, -0.5)  # Brake at 50% strength
         return V2(brake)
-
-    return V2(0, 0)
-
 
 # ---------------- New behaviours to be implemented ----------------
 
@@ -311,27 +335,27 @@ def pursue(pos, vel, target_pos, target_vel, max_speed):
       return seek toward predicted
     Replace simple seek in Snake Aggro with pursue for better interception.
     """
-    # Step 1: Get distance to target's CURRENT position
+    # Get distance to target's CURRENT position
     to_target = vec_sub(target_pos, pos)
     distance = vec_length(to_target)
 
-    # Step 2: Estimate how long it will take to reach the target
+    # Estimate how long it will take to reach the target
     speed = vec_length(vel) if vec_length(vel) > 0 else max_speed
     prediction_time = distance/speed  # velocity based
 
-    # Step 3: Predict where target will be in the future
+    # Predict where target will be in the future
     # Formula: future_pos = current_pos + (velocity × time)
     future_position = vec_add(
         target_pos,
         vec_mul(target_vel, prediction_time*0.5)  # tune factor
     )
 
-    # Step 4: Calculate desired velocity toward PREDICTED position
+    # Calculate desired velocity toward PREDICTED position
     desired = vec_sub(future_position, pos)
     desired = vec_normalize(desired)
     desired = vec_mul(desired, max_speed)
 
-    # Step 5: Calculate steering force (Reynolds steering formula)
+    # Calculate steering force (Reynolds steering formula)
     steer = vec_sub(desired, vel)
     # No limit needed here as wander is meant to be small
     return steer
@@ -364,21 +388,21 @@ def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18
       target point on that circle by a tiny random angle each update.
     Use this for Fly Idle and Snake Confused.
     """
-    # STEP 1: Randomly adjust the wander angle (random jitter between -jitter and +jitter)
+    # Randomly adjust the wander angle (random jitter between -jitter and +jitter)
     wander_angle = random.uniform(-jitter_deg,
-                                   jitter_deg)
+                                  jitter_deg)
 
-    # STEP 2: Calculate circle center position ahead of the agent (in the direction of velocity)
+    # Calculate circle center position ahead of the agent (in the direction of velocity)
     circle_center = vec_mul(vec_normalize(
         me_vel), circle_distance)
 
-    # STEP 3: Calculate displacement on circle edge
+    # Calculate displacement on circle edge
     displacement = (
         math.cos(wander_angle) * circle_radius,
         math.sin(wander_angle) * circle_radius
     )
 
-    # STEP 4: Combine center + displacement = target point
+    # Combine center + displacement = target point
     wander_force = vec_add(circle_center, displacement)
 
     # No limit needed here as wander is meant to be small
