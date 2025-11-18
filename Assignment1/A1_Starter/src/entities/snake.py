@@ -125,7 +125,7 @@ class Snake:
         elif self.state == SnakeState.Harmless:
             self.color = (190, 180, 255) # purpleish
             steer = arrive(self.pos, self.vel, self.home, self.speed * 0.9)
-            steer = seek_with_avoid(
+            steer += seek_with_avoid(
                 self.pos, self.vel, self.home, self.speed * 0.9, self.radius, self.rects) * avoidance_weight
 
         else:  # Confused

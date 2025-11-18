@@ -83,7 +83,7 @@ class Fly:
             # while flocking, switch to fleeing if scared
             if scared_by_frog or scared_by_bubble:
                 self.state = FlyState.Fleeing
-                self.scare_timer = 0.6 # set flee time
+                self.scare_timer = 0.6  # set flee time
             else:
                 # Build idle time only when calm and far
                 if dist_to_frog > IdleDistance:
@@ -91,7 +91,7 @@ class Fly:
                     if self.idle_timer >= IdleDelay:
                         self.state = FlyState.Idle
                 else:
-                    self.idle_timer = 0.0 # reset idle timer
+                    self.idle_timer = 0.0  # reset idle timer
 
         elif self.state == FlyState.Fleeing:
             # while fleeing, switch to flocking when calm for a while
@@ -126,7 +126,7 @@ class Fly:
                 if (f.pos - self.pos).length_squared() <= NEIGHBOR_RADIUS ** 2:
                     neighbors.append((f.pos, f.vel))
 
-            # TODO: compute boids forces 
+            # TODO: compute boids forces
             # return vectors from the three boids functions
             sep = boids_separation(self.pos, neighbors, sep_radius=50.0)
             coh = boids_cohesion(self.pos, neighbors)

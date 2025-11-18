@@ -321,6 +321,7 @@ def boids_alignment(me_vel, neighbors):
 #         brake = vec_mul(vel, -0.5)  # Brake at 50% strength
 #         return V2(brake)
 
+# seek with_avoid function updated with adaptive lookahead
 def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
     """
     Seek the target but avoid obstacles by sampling angled corridors.
@@ -428,7 +429,6 @@ def evade(pos, vel, threat_pos, threat_vel, max_speed):
     Predict the future position of a threat then flee from that point.
     This is the inverse of pursue. Use the same prediction idea.
     """
-    # raise NotImplementedError("Implement evade as inverse of pursue")
     to_pursuer = vec_sub(threat_pos, pos)
     distance = vec_length(to_pursuer)
     speed = vec_length(vel) if vec_length(vel) > 0 else max_speed

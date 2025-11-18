@@ -9,14 +9,16 @@
 #   Left click sets a target for the frog. Space shoots a bubble. R restarts.
 # ============================================================================
 
-import sys, random
+import sys
+import random
 import pygame
 from settings import *
 from utils import draw_grid
 from world import World
 from entities.frog import Frog
 from entities.fly import Fly
-from entities.snake import Snake
+from entities.snake import Snake, SnakeState
+
 
 def main():
     # Initialize Pygame and create a window and a clock
@@ -71,18 +73,18 @@ def main():
 
         # ---------------- Input ----------------
         for e in pygame.event.get():
-            if e.type == pygame.QUIT: # Exit the game
+            if e.type == pygame.QUIT:  # Exit the game
                 running = False
 
-            if e.type == pygame.KEYDOWN: # Key press events
+            if e.type == pygame.KEYDOWN:  # Key press events
                 if e.key == pygame.K_ESCAPE:
                     running = False
 
-                if not game_over and e.key == pygame.K_SPACE: # Shoot a bubble
+                if not game_over and e.key == pygame.K_SPACE:  # Shoot a bubble
                     # Space shoots a bubble from the frog mouth
                     frog.shoot()
 
-                if game_over and e.key == pygame.K_r: # Restart the whole scene
+                if game_over and e.key == pygame.K_r:  # Restart the whole scene
                     world, frog, flies, snakes = reset()
                     health = START_HEALTH
                     fly_count = 0
@@ -120,26 +122,30 @@ def main():
             #   - pop the bubble
             #   - if the snake is Aggro, switch it to Harmless or Confused
             # This logic is left as a student task to connect FSMs and mechanics.
-            # for s in snakes:
-            #     for b in frog.bubbles:
-            #         if (b.pos - s.pos).length_squared() <= (BUBBLE_RADIUS + s.radius) ** 2:
-            #             # if s.state == SnakeState.Aggro: s.set_state(SnakeState.Harmless)
-            #             # optional: on going harmless to home, then Confused for a short time
-            #             b.alive = False
+            for s in snakes:
+                for b in frog.bubbles:
+                    if (b.pos - s.pos).length_squared() <= (BUBBLE_RADIUS + s.radius) ** 2:
+                        # if s.state == SnakeState.Aggro: s.set_state(SnakeState.Harmless)
+                        # optional: on going harmless to home, then Confused for a short time
+                        b.alive = False
+
+                        if s.state == SnakeState.Aggro:
+                            s.set_state(SnakeState.Harmless)
+                            # The snake will go home, then become Confused (FSM handles this)
 
             # ------------- Damage logic -------------
             # Only Aggro snakes should damage the frog.
             # Use frog.can_be_hurt() to avoid multiple hits in a row.
             # After a hit, reduce health and optionally pacify the snake.
-            # for s in snakes:
-            #     if s.state == SnakeState.Aggro and (s.pos - frog.pos).length_squared() <= (s.radius + FROG_RADIUS) ** 2:
-            #         if frog.can_be_hurt():
-            #             health -= 1
-            #             frog.start_hurt()
-            #             s.set_state(SnakeState.Harmless)
-            #             if health <= 0:
-            #                 game_over = True
-            #                 win = False
+            for s in snakes:
+                if s.state == SnakeState.Aggro and (s.pos - frog.pos).length_squared() <= (s.radius + FROG_RADIUS) ** 2:
+                    if frog.can_be_hurt():
+                        health -= 1
+                        frog.start_hurt()
+                        s.set_state(SnakeState.Harmless)
+                        if health <= 0:
+                            game_over = True
+                            win = False
 
         # ---------------- Draw ----------------
         screen.fill(BG)           # clear background
@@ -158,14 +164,16 @@ def main():
             cy = 18
             col = RED if i < health else (80, 60, 60)
             pygame.draw.circle(screen, col, (cx, cy), 10)
-        # pygame.draw.circle(screen, col, (cx + 12, cy), 10)
+        pygame.draw.circle(screen, col, (cx + 12, cy), 10)
         points = [(cx - 6, cy + 2), (cx + 18, cy + 2), (cx + 6, cy + 18)]
-        # pygame.draw.polygon(screen, col, points)
+        pygame.draw.polygon(screen, col, points)
 
         # Draw fly counter and control hint
-        txt = font.render(f"Flies: {fly_count}/{FLIES_TO_WIN}", True, (240, 240, 240))
+        txt = font.render(
+            f"Flies: {fly_count}/{FLIES_TO_WIN}", True, (240, 240, 240))
         screen.blit(txt, (16, 42))
-        tips = font.render("Click to move, Space to bubble, R to restart", True, MUTED)
+        tips = font.render(
+            "Click to move, Space to bubble, R to restart", True, MUTED)
         screen.blit(tips, (16, 68))
 
         # If game over, dim the screen and show a message
@@ -179,7 +187,8 @@ def main():
             hint = font.render("Press R to restart", True, (240, 240, 240))
             rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 10))
             screen.blit(text, rect)
-            screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 44)))
+            screen.blit(hint, hint.get_rect(
+                center=(WIDTH // 2, HEIGHT // 2 + 44)))
 
         # Present the frame
         pygame.display.flip()
@@ -187,6 +196,7 @@ def main():
     # Clean shutdown
     pygame.quit()
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
