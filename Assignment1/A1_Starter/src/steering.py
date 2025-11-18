@@ -255,71 +255,133 @@ def boids_alignment(me_vel, neighbors):
 # ---------------- Obstacle avoidance blend ----------------
 
 
+# def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
+#     """
+#     Seek the target but avoid obstacles by sampling angled corridors.
+#     Idea
+#       1. Check a straight corridor first
+#       2. If blocked, rotate small angles left and right until a free path is found
+#       3. Use that direction for the seek
+#       4. If all blocked, apply a small braking force
+#     Use circlecast_hits_any_rect(p0, p1, radius, rects, step=6.0) to test each corridor.
+#     """
+#     # Calculate the desired direction toward target
+#     desired_dir = vec_sub(target, pos)
+#     distance_to_target = vec_length(desired_dir)
+
+#     # If already at target, no steering needed
+#     if distance_to_target < 0.01:
+#         return V2(0, 0)
+
+#     desired_dir = vec_normalize(desired_dir)
+
+#     # Calculate the lookahead endpoint (where we're "looking")
+#     lookahead_point = vec_add(pos, vec_mul(desired_dir, lookahead))
+
+#     # Check if the straight path is clear
+#     if not circlecast_hits_any_rect(pos, lookahead_point, radius, rects, step=6.0):
+#         # Direct path is clear! Use normal seek
+#         desired = vec_mul(desired_dir, max_speed)
+#         steer = vec_sub(desired, vel)
+#         return V2(steer)
+
+#     # Tunnable parameters for avoidance
+#     max_angle = 90.0  # Maximum angle to search (degrees)
+#     angle_step = 15.0  # Increment angle (degrees)
+
+#     best_dir = None
+
+#     # Alternate between left and right angles
+#     for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
+#         # Try rotating LEFT
+#         left_dir = rotate_vector(desired_dir, angle_deg)
+#         left_point = vec_add(pos, vec_mul(left_dir, lookahead))
+
+#         if not circlecast_hits_any_rect(pos, left_point, radius, rects, step=6.0):
+#             best_dir = left_dir
+#             break
+
+#         # Try rotating RIGHT
+#         right_dir = rotate_vector(desired_dir, -angle_deg)
+#         right_point = vec_add(pos, vec_mul(right_dir, lookahead))
+
+#         if not circlecast_hits_any_rect(pos, right_point, radius, rects, step=6.0):
+#             best_dir = right_dir
+#             break
+
+#     #Apply steering based on result
+#     if best_dir is not None:
+#         # Found a clear path
+#         desired = vec_mul(best_dir, max_speed)
+#         steer = vec_sub(desired, vel)
+#         return V2(steer)
+#     else:
+#         # All paths blocked - apply braking force to slow down
+#         # Return a force opposite to current velocity
+#         brake = vec_mul(vel, -0.5)  # Brake at 50% strength
+#         return V2(brake)
+
 def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
     """
     Seek the target but avoid obstacles by sampling angled corridors.
-    Idea
-      1. Check a straight corridor first
-      2. If blocked, rotate small angles left and right until a free path is found
-      3. Use that direction for the seek
-      4. If all blocked, apply a small braking force
-    Use circlecast_hits_any_rect(p0, p1, radius, rects, step=6.0) to test each corridor.
+    Lookahead adapts to current speed for better reaction time.
     """
     # Calculate the desired direction toward target
     desired_dir = vec_sub(target, pos)
     distance_to_target = vec_length(desired_dir)
 
-    # If already at target, no steering needed
     if distance_to_target < 0.01:
         return V2(0, 0)
 
     desired_dir = vec_normalize(desired_dir)
 
-    # Calculate the lookahead endpoint (where we're "looking")
-    lookahead_dist = min(lookahead, distance_to_target)
-    lookahead_point = vec_add(pos, vec_mul(desired_dir, lookahead_dist))
+    # Adaptive lookahead based on speed
+    current_speed = vec_length(vel)
+    reaction_time = 1.5  # seconds to react
+    
+    # Calculate how far we'll travel in reaction_time
+    speed_based_lookahead = current_speed * reaction_time
+    
+    # Use minimum of: default lookahead, speed-based, or a minimum safety distance
+    min_lookahead = 60.0  # Always look at least this far
+    effective_lookahead = max(min_lookahead, min(lookahead, speed_based_lookahead))
 
-    # Check if the straight path is clear
+    # Check straight path
+    lookahead_point = vec_add(pos, vec_mul(desired_dir, effective_lookahead))
+    
     if not circlecast_hits_any_rect(pos, lookahead_point, radius, rects, step=6.0):
-        # Direct path is clear! Use normal seek
         desired = vec_mul(desired_dir, max_speed)
         steer = vec_sub(desired, vel)
         return V2(steer)
 
-    # Direct path blocked - try angled corridors
-    max_angle = 90.0  # Maximum angle to search (degrees)
-    angle_step = 15.0  # Increment angle (degrees)
+    # Tunnable parameters for avoidance
+    max_angle = 90.0
+    angle_step = 15.0
 
     best_dir = None
-
-    # Alternate between left and right angles
     for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
-        # Try rotating LEFT
+        # Try left route or right route
         left_dir = rotate_vector(desired_dir, angle_deg)
-        left_point = vec_add(pos, vec_mul(left_dir, lookahead_dist))
+        left_point = vec_add(pos, vec_mul(left_dir, effective_lookahead))
 
         if not circlecast_hits_any_rect(pos, left_point, radius, rects, step=6.0):
             best_dir = left_dir
             break
 
-        # Try rotating RIGHT
         right_dir = rotate_vector(desired_dir, -angle_deg)
-        right_point = vec_add(pos, vec_mul(right_dir, lookahead_dist))
+        right_point = vec_add(pos, vec_mul(right_dir, effective_lookahead))
 
         if not circlecast_hits_any_rect(pos, right_point, radius, rects, step=6.0):
             best_dir = right_dir
             break
 
-    #Apply steering based on result
     if best_dir is not None:
-        # Found a clear path
         desired = vec_mul(best_dir, max_speed)
         steer = vec_sub(desired, vel)
         return V2(steer)
     else:
-        # All paths blocked - apply braking force to slow down
-        # Return a force opposite to current velocity
-        brake = vec_mul(vel, -0.5)  # Brake at 50% strength
+        # Blocked - brake hard
+        brake = vec_mul(vel, -1.0)
         return V2(brake)
 
 # ---------------- New behaviours to be implemented ----------------

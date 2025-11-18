@@ -83,7 +83,7 @@ class Fly:
             # while flocking, switch to fleeing if scared
             if scared_by_frog or scared_by_bubble:
                 self.state = FlyState.Fleeing
-                self.scare_timer = 0.6
+                self.scare_timer = 0.6 # set flee time
             else:
                 # Build idle time only when calm and far
                 if dist_to_frog > IdleDistance:
@@ -91,7 +91,7 @@ class Fly:
                     if self.idle_timer >= IdleDelay:
                         self.state = FlyState.Idle
                 else:
-                    self.idle_timer = 0.0
+                    self.idle_timer = 0.0 # reset idle timer
 
         elif self.state == FlyState.Fleeing:
             # while fleeing, switch to flocking when calm for a while
@@ -132,7 +132,7 @@ class Fly:
             coh = boids_cohesion(self.pos, neighbors)
             ali = boids_alignment(self.vel, neighbors)
             force = sep * SEP_WEIGHT + coh * COH_WEIGHT + ali * ALI_WEIGHT
-            force = V2()
+            # force = V2()
 
             # Gentle anchor toward arena center to avoid drifting out of bounds
             center = V2(bounds_rect.centerx, bounds_rect.centery)
@@ -144,7 +144,7 @@ class Fly:
         elif self.state == FlyState.Fleeing:
             # TODO: replace simple flee with predictive evade for extra credit
             force = evade(self.pos, self.vel, frog.pos, frog.vel, FLY_SPEED)
-            force = flee(self.pos, self.vel, frog.pos, FLY_SPEED)
+            # force = flee(self.pos, self.vel, frog.pos, FLY_SPEED)
 
             # Anchor blend so the group does not disappear off screen
             center = V2(bounds_rect.centerx, bounds_rect.centery)
@@ -155,7 +155,7 @@ class Fly:
         elif self.state == FlyState.Idle:
             # TODO: use wander_force to provide gentle drifting
             force = wander_force(self.vel, rng_seed=self._rng_seed)
-            force = V2()
+            # force = V2()
             self.vel += limit(force, 120.0) * dt
             self.vel *= 0.98  # mild damping so idle feels soft
 
