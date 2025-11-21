@@ -125,15 +125,19 @@ class Frog:
         for b in self.bubbles:
             b.draw(surf)
 
-        # Display state text based on hurt timer
+        # Display state text based on hurt timer and movement
         if self.hurt_timer > 0:
             # Show "HURT" state with remaining time
             state_text = f"HURT ({self.hurt_timer:.1f}s)"
             text_color = (255, 100, 100)  # Red for hurt state
         else:
-            # Show "NORMAL" state
-            state_text = "NORMAL"
-            text_color = (255, 255, 255)  # White for normal state
+            # Show state based on movement
+            if self.vel.length_squared() < 1:  # Very small velocity = stopped
+                state_text = "STOPPED"
+                text_color = (200, 200, 200)  # Gray for stopped
+            else:
+                state_text = "RUNNING"
+                text_color = (100, 255, 100)  # Bright green for running
 
         txt = self.font.render(state_text, True, text_color)
         surf.blit(txt, (self.pos.x - txt.get_width()/2, self.pos.y - self.radius - 16))
