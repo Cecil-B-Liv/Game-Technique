@@ -32,7 +32,9 @@ class SnakeState(Enum):
 
 
 class Snake:
-    def __init__(self, pos, patrol_point, rects):
+    def __init__(self, pos, patrol_point, rects, font):
+        self.font = font
+
         # Motion and shape
         self.pos = V2(pos)
         self.vel = V2(1, 0)
@@ -73,6 +75,8 @@ class Snake:
 
         # Distance to frog for transitions
         dist = (frog.pos - self.pos).length()
+
+
 
         # ---------------- FSM transitions ----------------
         # Aggro snake calms down when frog is far
@@ -162,3 +166,6 @@ class Snake:
         head = self.pos + V2(1, 0).rotate(self.heading_deg) * (self.radius - 2)
         pygame.draw.circle(surf, (30, 30, 30), head, 3)
         pygame.draw.circle(surf, WHITE, head, 5, 1)
+
+        txt = self.font.render(self.state.name, True, (255,255,255))
+        surf.blit(txt, (self.pos.x - txt.get_width()/2, self.pos.y - self.radius-16))    

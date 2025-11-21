@@ -171,85 +171,80 @@ def boids_separation(me_pos, neighbors, sep_radius):
     """
     Push away from neighbors that are too close.
     neighbors: list of tuples (neighbor_pos, neighbor_vel)
-    Typical approach
+    Typical approach:
       For each neighbor inside sep_radius, add a vector pointing away with
       magnitude inversely proportional to distance. Normalize at the end.
     """
-    steering_sum = (0, 0)
+    steering_sum = V2()
     count = 0
 
     for neighbor_pos, neighbor_vel in neighbors:
         # Distance between self and other
-        distance = vec_length(vec_sub(me_pos, neighbor_pos))
+        diff = me_pos - neighbor_pos
+        distance = diff.length()
 
         # Changed perception to sep_radius here for clarity
         if 0 < distance < sep_radius:
             # Direction away from the neighbor
-            diff = vec_sub(me_pos, neighbor_pos)
-            diff = vec_normalize(diff)
-            # Closer boids have stronger effect (1 / distance)
-            diff = vec_mul(diff, 1 / distance)
-            steering_sum = vec_add(steering_sum, diff)
-            count += 1
+            steering_sum += diff.normalize() / distance
+            count+=1
 
     if count > 0:
         # Average the separation vectors
-        steering_sum = vec_mul(steering_sum, 1.0 / count)
-        # Normalize at the end for pure direction
-        if vec_length(steering_sum) > 0:
-            steering_sum = vec_normalize(steering_sum)
-        return V2(steering_sum)
+        steering_sum /= count
+        # Return the force vector (with magnitude)
+        return steering_sum.normalize() * FLY_SPEED * 1.5
 
     # No close neighbors -> no separation force
-    return V2(0, 0)
+    return steering_sum*1.5*FLY_SPEED
 
 
 def boids_cohesion(me_pos, neighbors):
     """
     Pull toward the average position of neighbors.
-    Typical approach
+    Typical approach:
       Compute the center of mass of neighbors then steer toward that point.
     """
-    center_of_mass = (0, 0)
+    center_of_mass = V2()
     count = 0
 
     for neighbor_pos, neighbor_vel in neighbors:
-        center_of_mass = vec_add(center_of_mass, neighbor_pos)
+        center_of_mass += neighbor_pos
         count += 1
 
     if count > 0:
         # Average position of neighbors
-        center_of_mass = vec_mul(center_of_mass, 1 / count)
-        # Direction toward center
-        desired = vec_sub(center_of_mass, me_pos)
-        if vec_length(desired) > 0:  # Avoid division by zero
-            return V2(vec_normalize(desired))
+        center_of_mass /= count
+        desired = me_pos-center_of_mass
+        # Return the force vector (with magnitude based on distance)
+        return desired.normalize()*FLY_SPEED
 
-    return V2(0, 0)
+    return center_of_mass*FLY_SPEED
 
 
 def boids_alignment(me_vel, neighbors):
     """
     Match the average velocity of neighbors.
-    Typical approach
+    Typical approach:
       Compute the average heading of neighbors then steer toward that heading.
     """
-    avg_velocity = (0, 0)
+    avg_velocity = V2()
     count = 0
 
     for neighbor_pos, neighbor_vel in neighbors:
-        avg_velocity = vec_add(avg_velocity, neighbor_vel)
+        avg_velocity += neighbor_vel
         count += 1
 
     if count > 0:
         # Average the neighbor velocities
-        avg_velocity = vec_mul(avg_velocity, 1 / count)
-        # Direction to match average heading
-        steer = vec_sub(avg_velocity, me_vel)
-        if vec_length(steer) > 0:
-            return V2(vec_normalize(steer))
+        avg_velocity /=  count
+        # Steering force to match average velocity
+        steer = avg_velocity - me_vel
+        # Return the steering force (with magnitude)
+        return steer.normalize() * FLY_SPEED
 
-    return V2(0, 0)
+    return avg_velocity*FLY_SPEED
+
 
 # ---------------- Obstacle avoidance blend ----------------
 
@@ -400,4 +395,4 @@ def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18
     wander_force = vec_add(circle_center, displacement)
 
     # No limit needed here as wander is meant to be small
-    return V2(wander_force)
+    return V2(wander_force) * 150

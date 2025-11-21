@@ -30,6 +30,7 @@ def main():
     # Fonts for text and overlay
     font = pygame.font.SysFont("consolas", 22)
     bigfont = pygame.font.SysFont("consolas", 48, bold=True)
+    smallfont = pygame.font.SysFont("consolas", 14)
 
     def reset():
         """
@@ -41,7 +42,7 @@ def main():
 
         # Randomly scatter flies inside the world bounds
         # (ensure they don't spawn too close to edges)
-        flies = [Fly((random.randint(60, WIDTH - 60), random.randint(60, HEIGHT - 60)))
+        flies = [Fly((random.randint(60, WIDTH - 60), random.randint(60, HEIGHT - 60)), smallfont)
                  for _ in range(NUM_FLIES)]
 
         # Create snakes with patrol points mirrored across the screen
@@ -51,7 +52,7 @@ def main():
             px = 140 + i * 320
             py = 120 if i % 2 == 0 else HEIGHT - 140
             patrol = (WIDTH - px, HEIGHT - py)
-            snakes.append(Snake((px, py), patrol, world.obstacles))
+            snakes.append(Snake((px, py), patrol, world.obstacles, smallfont))
 
         return world, frog, flies, snakes
 

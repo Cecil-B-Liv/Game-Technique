@@ -34,14 +34,14 @@ BUBBLE_SPEED    = 380.0   # how fast the bubble travels
 BUBBLE_LIFETIME = 2.0     # seconds before the bubble pops automatically
 
 # Fly setup
-NUM_FLIES = 50            # how many flies spawn
+NUM_FLIES = 30        # how many flies spawn
 FLY_RADIUS = 8            # fly draw and collision radius
 FLY_SPEED  = 120.0        # fly max speed
 
 # Boids neighborhood and weights
 # These determine how flies react to neighbors
-NEIGHBOR_RADIUS = 120.0   # how far a fly considers other flies as neighbors
-SEP_RADIUS      = 50.0    # separation threshold distance
+NEIGHBOR_RADIUS = 120.0 + 20.0   # how far a fly considers other flies as neighbors
+SEP_RADIUS      = 50.0 - 10    # separation threshold distance
 SEP_WEIGHT      = 1.9     # weight for separation force
 COH_WEIGHT      = 0.9     # weight for cohesion force
 ALI_WEIGHT      = 0.8     # weight for alignment force
@@ -67,5 +67,5 @@ AVOID_ANGLE_INCREMENT = 12      # degrees to rotate per step when searching for 
 AVOID_MAX_ANGLE       = 84      # maximum deviation to try on either side
 
 # Game rules
-START_HEALTH = 3                 # how many hits the frog can take
+START_HEALTH = 30               # how many hits the frog can take
 FLIES_TO_WIN = 10                # win condition counter

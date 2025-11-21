@@ -33,7 +33,9 @@ class FlyState(Enum):
 
 
 class Fly:
-    def __init__(self, pos):
+    def __init__(self, pos, font):
+        self.font = font
+        
         self.pos = V2(pos)
         self.vel = V2(random.uniform(-1, 1), random.uniform(-1, 1))
         # random initial velocity
@@ -182,3 +184,6 @@ class Fly:
         color = YELLOW if self.state in (
             FlyState.Flock, FlyState.Idle) else PURPLE
         pygame.draw.circle(surf, color, self.pos, self.radius)
+        
+        txt = self.font.render(self.state.name, True, (255,255,255))
+        surf.blit(txt, (self.pos.x - txt.get_width()/2, self.pos.y - self.radius-16))
