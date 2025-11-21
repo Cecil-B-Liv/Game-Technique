@@ -67,6 +67,50 @@ class Snake:
         """Switch to a new FSM state."""
         self.state = st
 
+    def compute_obstacle_avoidance(self, look_ahead_distance=80):
+        """
+        Compute a steering force to avoid obstacles.
+        Returns a Vector2 force that pushes away from nearby obstacles.
+        """
+        avoidance_force = V2(0, 0)
+        
+        # Normalize velocity for direction checking
+        if self.vel.length_squared() > 0:
+            forward = self.vel.normalize()
+        else:
+            forward = V2(1, 0)
+        
+        # Check each obstacle
+        for rect in self.rects:
+            # Find closest point on rectangle to snake
+            closest_x = max(rect.left, min(self.pos.x, rect.right))
+            closest_y = max(rect.top, min(self.pos.y, rect.bottom))
+            closest_point = V2(closest_x, closest_y)
+            
+            # Vector from closest point to snake
+            to_snake = self.pos - closest_point
+            distance = to_snake.length()
+            
+            # Only avoid if obstacle is close
+            avoidance_radius = self.radius + 30  # Detection radius
+            
+            if distance < avoidance_radius and distance > 0:
+                # Check if obstacle is roughly in front of us
+                to_obstacle = closest_point - self.pos
+                if to_obstacle.length_squared() > 0:
+                    to_obstacle_normalized = to_obstacle.normalize()
+                    # Dot product to check if obstacle is ahead
+                    ahead_factor = forward.dot(to_obstacle_normalized)
+                    
+                    # Only avoid obstacles that are ahead (dot > -0.5)
+                    if ahead_factor > -0.5:
+                        # Stronger avoidance when closer
+                        strength = (avoidance_radius - distance) / avoidance_radius
+                        # Push away from obstacle
+                        avoidance_force += to_snake.normalize() * strength * self.speed * 2
+        
+        return avoidance_force
+
     def update(self, dt, frog):
         """
         Update state transitions based on distance to frog and timers.
@@ -137,6 +181,14 @@ class Snake:
             # TODO: use wander_force for a gentle random walk during confusion
             steer = wander_force(self.vel, rng_seed=self._rng_seed)
             # steer = V2()
+
+        # ADD OBSTACLE AVOIDANCE TO ALL STATES
+        obstacle_avoidance = self.compute_obstacle_avoidance()
+        
+        # Combine steering with obstacle avoidance
+        # Higher weight means stronger avoidance
+        avoidance_weight = 2.5  # Tune this value (1.0 - 5.0)
+        steer += obstacle_avoidance * avoidance_weight
 
         # Integrate velocity and update position
         self.vel = integrate_velocity(self.vel, steer, dt, self.speed)

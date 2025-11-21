@@ -217,7 +217,7 @@ def boids_cohesion(me_pos, neighbors):
         center_of_mass /= count
         desired = me_pos-center_of_mass
         # Return the force vector (with magnitude based on distance)
-        return desired.normalize()*FLY_SPEED
+        return desired.normalize()*FLY_SPEED*1.2
 
     return center_of_mass*FLY_SPEED
 

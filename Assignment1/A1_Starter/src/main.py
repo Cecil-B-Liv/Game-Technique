@@ -38,7 +38,7 @@ def main():
         Returns a tuple of (world, frog, flies, snakes).
         """
         world = World(WIDTH, HEIGHT)
-        frog = Frog((WIDTH * 0.5, HEIGHT * 0.5))
+        frog = Frog((WIDTH * 0.5, HEIGHT * 0.5), smallfont)
 
         # Randomly scatter flies inside the world bounds
         # (ensure they don't spawn too close to edges)

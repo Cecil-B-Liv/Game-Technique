@@ -46,7 +46,8 @@ class Bubble:
 
 
 class Frog:
-    def __init__(self, pos):
+    def __init__(self, pos, font):
+        self.font = font
         self.pos = V2(pos)
         self.vel = V2()
         self.target = V2(pos)
@@ -123,3 +124,16 @@ class Frog:
         # Bubbles
         for b in self.bubbles:
             b.draw(surf)
+
+        # Display state text based on hurt timer
+        if self.hurt_timer > 0:
+            # Show "HURT" state with remaining time
+            state_text = f"HURT ({self.hurt_timer:.1f}s)"
+            text_color = (255, 100, 100)  # Red for hurt state
+        else:
+            # Show "NORMAL" state
+            state_text = "NORMAL"
+            text_color = (255, 255, 255)  # White for normal state
+
+        txt = self.font.render(state_text, True, text_color)
+        surf.blit(txt, (self.pos.x - txt.get_width()/2, self.pos.y - self.radius - 16))
