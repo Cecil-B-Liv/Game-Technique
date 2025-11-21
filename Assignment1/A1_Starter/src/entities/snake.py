@@ -96,7 +96,7 @@ class Snake:
                 self.set_state(SnakeState.PatrolAway)
 
         # ---------------- State behaviours ----------------
-        avoidance_weight = 1.0
+        avoidance_weight = 1.0  # tune obstacle avoidance strength for all snakes 
         if self.state == SnakeState.Aggro:
             self.color = (255, 150, 150)
             # TODO: replace seek with pursue for smarter interception

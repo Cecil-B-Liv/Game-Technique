@@ -85,18 +85,18 @@ def seek(pos, vel, target, max_speed):
     desired = direction_to_target * max_speed
     steering = desired - current_velocity
     """
-    desired = vec_sub(target, pos)
-    desired = vec_normalize(desired)
-    desired = vec_mul(desired, max_speed)
-    steer = vec_sub(desired, vel)
-    steer = vec_limit(steer, max_speed)
-    return V2(steer)
+    # desired = vec_sub(target, pos)
+    # desired = vec_normalize(desired)
+    # desired = vec_mul(desired, max_speed)
+    # steer = vec_sub(desired, vel)
+    # steer = vec_limit(steer, max_speed)
+    # return V2(steer)
 
-    # d = target - pos
-    # if d.length_squared() == 0:
-    #     return V2()
-    # desired = d.normalize() * max_speed
-    # return desired - vel
+    d = target - pos
+    if d.length_squared() == 0:
+        return V2()
+    desired = d.normalize() * max_speed
+    return desired - vel
 
 
 def flee(pos, vel, target, max_speed):
@@ -108,7 +108,7 @@ def flee(pos, vel, target, max_speed):
     distance = vec_length(away)
     away = vec_normalize(away)
 
-    # Optional: increase flee speed when very close to threat
+    # Increase flee speed when very close to threat
     panic_radius = 200.0  # can be tuned
     if distance < panic_radius:
         intensity = panic_radius / distance
@@ -166,7 +166,6 @@ def integrate_velocity(vel, force, dt, max_speed):
 
 # Note: No need to handle self check and handle neighbor radius here.
 # The caller (Fly update) already does that.
-
 
 def boids_separation(me_pos, neighbors, sep_radius):
     """
@@ -254,73 +253,6 @@ def boids_alignment(me_vel, neighbors):
 
 # ---------------- Obstacle avoidance blend ----------------
 
-
-# def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
-#     """
-#     Seek the target but avoid obstacles by sampling angled corridors.
-#     Idea
-#       1. Check a straight corridor first
-#       2. If blocked, rotate small angles left and right until a free path is found
-#       3. Use that direction for the seek
-#       4. If all blocked, apply a small braking force
-#     Use circlecast_hits_any_rect(p0, p1, radius, rects, step=6.0) to test each corridor.
-#     """
-#     # Calculate the desired direction toward target
-#     desired_dir = vec_sub(target, pos)
-#     distance_to_target = vec_length(desired_dir)
-
-#     # If already at target, no steering needed
-#     if distance_to_target < 0.01:
-#         return V2(0, 0)
-
-#     desired_dir = vec_normalize(desired_dir)
-
-#     # Calculate the lookahead endpoint (where we're "looking")
-#     lookahead_point = vec_add(pos, vec_mul(desired_dir, lookahead))
-
-#     # Check if the straight path is clear
-#     if not circlecast_hits_any_rect(pos, lookahead_point, radius, rects, step=6.0):
-#         # Direct path is clear! Use normal seek
-#         desired = vec_mul(desired_dir, max_speed)
-#         steer = vec_sub(desired, vel)
-#         return V2(steer)
-
-#     # Tunnable parameters for avoidance
-#     max_angle = 90.0  # Maximum angle to search (degrees)
-#     angle_step = 15.0  # Increment angle (degrees)
-
-#     best_dir = None
-
-#     # Alternate between left and right angles
-#     for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
-#         # Try rotating LEFT
-#         left_dir = rotate_vector(desired_dir, angle_deg)
-#         left_point = vec_add(pos, vec_mul(left_dir, lookahead))
-
-#         if not circlecast_hits_any_rect(pos, left_point, radius, rects, step=6.0):
-#             best_dir = left_dir
-#             break
-
-#         # Try rotating RIGHT
-#         right_dir = rotate_vector(desired_dir, -angle_deg)
-#         right_point = vec_add(pos, vec_mul(right_dir, lookahead))
-
-#         if not circlecast_hits_any_rect(pos, right_point, radius, rects, step=6.0):
-#             best_dir = right_dir
-#             break
-
-#     #Apply steering based on result
-#     if best_dir is not None:
-#         # Found a clear path
-#         desired = vec_mul(best_dir, max_speed)
-#         steer = vec_sub(desired, vel)
-#         return V2(steer)
-#     else:
-#         # All paths blocked - apply braking force to slow down
-#         # Return a force opposite to current velocity
-#         brake = vec_mul(vel, -0.5)  # Brake at 50% strength
-#         return V2(brake)
-
 # seek with_avoid function updated with adaptive lookahead
 def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_LOOKAHEAD):
     """
@@ -343,7 +275,7 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
     # Calculate how far we'll travel in reaction_time
     speed_based_lookahead = current_speed * reaction_time
     
-    # Use minimum of: default lookahead, speed-based, or a minimum safety distance
+    # Default lookahead, speed-based, or a minimum safety distance
     min_lookahead = 60.0  # Always look at least this far
     effective_lookahead = max(min_lookahead, min(lookahead, speed_based_lookahead))
 
@@ -356,8 +288,8 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
         return V2(steer)
 
     # Tunnable parameters for avoidance
-    max_angle = 90.0
-    angle_step = 15.0
+    max_angle = AVOID_MAX_ANGLE
+    angle_step = AVOID_ANGLE_INCREMENT
 
     best_dir = None
     for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
@@ -381,7 +313,7 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
         steer = vec_sub(desired, vel)
         return V2(steer)
     else:
-        # Blocked - brake hard
+        # Brake 
         brake = vec_mul(vel, -1.0)
         return V2(brake)
 
@@ -398,7 +330,7 @@ def pursue(pos, vel, target_pos, target_vel, max_speed):
       return seek toward predicted
     Replace simple seek in Snake Aggro with pursue for better interception.
     """
-    # Get distance to target's CURRENT position
+    # Get distance to target's current position
     to_target = vec_sub(target_pos, pos)
     distance = vec_length(to_target)
 

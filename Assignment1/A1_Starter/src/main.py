@@ -164,9 +164,9 @@ def main():
             cy = 18
             col = RED if i < health else (80, 60, 60)
             pygame.draw.circle(screen, col, (cx, cy), 10)
-        pygame.draw.circle(screen, col, (cx + 12, cy), 10)
+        # pygame.draw.circle(screen, col, (cx + 12, cy), 10)
         points = [(cx - 6, cy + 2), (cx + 18, cy + 2), (cx + 6, cy + 18)]
-        pygame.draw.polygon(screen, col, points)
+        # pygame.draw.polygon(screen, col, points)
 
         # Draw fly counter and control hint
         txt = font.render(
