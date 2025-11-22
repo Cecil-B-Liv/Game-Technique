@@ -13,7 +13,7 @@ import random
 from pygame.math import Vector2 as V2
 from utils import limit, circlecast_hits_any_rect
 from settings import (
-    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS, FLY_SPEED, NEIGHBOR_RADIUS,
+    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS, FLY_SPEED, FPS, NEIGHBOR_RADIUS,
     AVOID_LOOKAHEAD, AVOID_ANGLE_INCREMENT, AVOID_MAX_ANGLE, SNAKE_SPEED
 )
 
@@ -133,19 +133,30 @@ def arrive(pos, vel, target, max_speed, slow_radius=ARRIVE_SLOW_RADIUS, stop_rad
       Otherwise use full speed
     This should remove overshoot and jitter around the target.
     """
-    desired = vec_sub(target, pos)
-    distance = vec_length(desired)
-    if distance < 0.5:
-        vel = vel.update(0, 0)
-        return V2()  # need to return something to stop
-    desired = vec_normalize(desired)
-    if distance < slow_radius:
+    desired = target - pos
+    distance = desired.length()
+
+    if distance == 0:
+        return V2(0, 0)
+
+    # Normalize direction
+    desired = desired.normalize()
+
+    # Scale speed based on distance (check stop_radius FIRST!)
+    if distance < stop_radius:
+        # Apply strong braking
+        braking_force = -vel * 5
+        return braking_force
+    elif distance < slow_radius:
+        # Slowing zone - scale speed proportionally
         scaled_speed = max_speed * (distance / slow_radius)
     else:
+        # Far away - full speed
         scaled_speed = max_speed
-    desired = vec_mul(desired, scaled_speed)
-    steer = vec_sub(desired, vel)
-    steer = vec_limit(steer, max_speed)
+
+    desired_vec = desired.normalize() * scaled_speed
+    # Steering force
+    steer = desired_vec - vel
     return V2(steer)
 
 
@@ -267,80 +278,41 @@ def seek_with_avoid(pos, vel, target, max_speed, radius, rects, lookahead=AVOID_
 
     desired_dir = vec_normalize(desired_dir)
 
-    # Adaptive lookahead based on speed
-    current_speed = vec_length(vel)
-    reaction_time = 1.5  # seconds to react
+    # Adjust lookahead based on current speed (faster = longer lookahead)
+    lookahead_point = vec_add(pos, vec_mul(desired_dir, lookahead))
 
-    speed_based_lookahead = current_speed * reaction_time
-    min_lookahead = 60.0  # Always look at least this far
-    effective_lookahead = max(min_lookahead, min(
-        lookahead, speed_based_lookahead))
-
-    # Check straight path first
-    lookahead_point = vec_add(pos, vec_mul(desired_dir, effective_lookahead))
-
-    if not circlecast_hits_any_rect(pos, lookahead_point, radius + 5, rects, step=6.0):
-        # Path is clear - go straight to target
+    if not circlecast_hits_any_rect(pos, lookahead_point, radius, rects, step=6.0):
+        # Clear path - go straight
         desired = vec_mul(desired_dir, max_speed)
         steer = vec_sub(desired, vel)
         return V2(steer)
 
-    # Path blocked - find best alternative direction
+    # Obstacle ahead - test angled paths
     max_angle = AVOID_MAX_ANGLE
     angle_step = AVOID_ANGLE_INCREMENT
 
-    best_dir = None
-    best_angle = max_angle + 1  # Track smallest angle deviation
-
-    # Check all angles and pick the one closest to target direction
     for angle_deg in range(int(angle_step), int(max_angle) + 1, int(angle_step)):
-        # Try left side
+        # Try left
         left_dir = rotate_vector(desired_dir, angle_deg)
-        left_point = vec_add(pos, vec_mul(left_dir, effective_lookahead))
+        left_point = vec_add(pos, vec_mul(left_dir, lookahead))
 
-        if not circlecast_hits_any_rect(pos, left_point, radius + 5, rects, step=6.0):
-            if angle_deg < best_angle:
-                best_dir = left_dir
-                best_angle = angle_deg
-
-        # Try right side
-        right_dir = rotate_vector(desired_dir, -angle_deg)
-        right_point = vec_add(pos, vec_mul(right_dir, effective_lookahead))
-
-        if not circlecast_hits_any_rect(pos, right_point, radius + 5, rects, step=6.0):
-            if angle_deg < best_angle:
-                best_dir = right_dir
-                best_angle = angle_deg
-
-    if best_dir is not None:
-        # Found a clear path - steer toward it
-        desired = vec_mul(best_dir, max_speed)
-        steer = vec_sub(desired, vel)
-        return V2(steer)
-    else:
-        # All paths blocked - try to escape by moving perpendicular to current velocity
-        # This prevents getting completely stuck
-        if vec_length(vel) > 0.1:
-            # Move perpendicular to current direction
-            perpendicular = rotate_vector(vec_normalize(vel), 90)
-            escape_dir = perpendicular
-
-            # Check if perpendicular direction is clear
-            escape_point = vec_add(pos, vec_mul(
-                escape_dir, effective_lookahead))
-            if circlecast_hits_any_rect(pos, escape_point, radius + 5, rects, step=6.0):
-                # Try other perpendicular direction
-                escape_dir = rotate_vector(vec_normalize(vel), -90)
-
-            desired = vec_mul(escape_dir, max_speed * 0.7)
+        if not circlecast_hits_any_rect(pos, left_point, radius, rects, step=6.0):
+            desired = vec_mul(left_dir, max_speed)
             steer = vec_sub(desired, vel)
             return V2(steer)
-        else:
-            # Completely stuck - apply strong random escape force
-            random_angle = random.uniform(0, 360)
-            escape_dir = rotate_vector((1, 0), random_angle)
-            desired = vec_mul(escape_dir, max_speed * 0.5)
-            return V2(desired)
+
+        # Try right
+        right_dir = rotate_vector(desired_dir, -angle_deg)
+        right_point = vec_add(pos, vec_mul(right_dir, lookahead))
+
+        if not circlecast_hits_any_rect(pos, right_point, radius, rects, step=6.0):
+            desired = vec_mul(right_dir, max_speed)
+            steer = vec_sub(desired, vel)
+            return V2(steer)
+
+    # All paths blocked - brake
+    brake = vec_mul(vel, -1.0)
+    return V2(brake)
 
 # ---------------- New behaviours to be implemented ----------------
 

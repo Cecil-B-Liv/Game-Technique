@@ -68,7 +68,7 @@ class Snake:
         """Switch to a new FSM state."""
         self.state = st
 
-    def compute_obstacle_avoidance(self, avoidance_radius=50):
+    def compute_obstacle_avoidance(self, avoidance_radius=45):
         """
         Compute a repulsion force that pushes away from nearby obstacles.
         This creates a 'buffer zone' around obstacles that snakes cannot enter.
@@ -127,7 +127,8 @@ class Snake:
                 self.set_state(SnakeState.PatrolAway)
 
         # ---------------- State behaviours ----------------
-        avoidance_weight = 0.25  # tune obstacle avoidance strength for all snakes
+        avoidance_weight = 2.0  # tune obstacle avoidance strength for all snakes
+        repulsive_weight = 5.0  # tune overall repulsive force weight
         if self.state == SnakeState.Aggro:
             self.color = (255, 150, 150)
             # TODO: replace seek with pursue for smarter interception
@@ -142,7 +143,8 @@ class Snake:
             steer = arrive(self.pos, self.vel, self.patrol_point, self.speed)
             steer += seek_with_avoid(self.pos, self.vel, self.patrol_point,
                                      self.speed, self.radius, self.rects) * avoidance_weight
-            if (self.patrol_point - self.pos).length() < 10:
+
+            if (self.patrol_point - self.pos).length() < 35:
                 self.set_state(SnakeState.PatrolHome)  # turn green
 
         elif self.state == SnakeState.PatrolHome:  # patrol back to home
@@ -150,13 +152,13 @@ class Snake:
             steer = arrive(self.pos, self.vel, self.home, self.speed)
             steer += seek_with_avoid(self.pos, self.vel, self.home,
                                      self.speed, self.radius, self.rects) * avoidance_weight
-            if (self.home - self.pos).length() < 10:
+            if (self.home - self.pos).length() < 35:
                 self.set_state(SnakeState.PatrolAway)  # turn blue
 
         elif self.state == SnakeState.Harmless:
             self.color = (190, 180, 255)  # purpleish
             steer = arrive(self.pos, self.vel, self.home, self.speed * 0.9)
-            steer = seek_with_avoid(
+            steer += seek_with_avoid(
                 self.pos, self.vel, self.home, self.speed * 0.9, self.radius, self.rects) * avoidance_weight
 
         else:  # Confused
@@ -167,11 +169,12 @@ class Snake:
 
         # add obstacle avoidance to all states
         obstacle_avoidance = self.compute_obstacle_avoidance()
-
         # Combine steering with obstacle avoidance
         # Higher weight means stronger avoidance
-        avoidance_weight = 4  # Tune this value (1.0 - 5.0)
-        steer += obstacle_avoidance * avoidance_weight
+        steer += obstacle_avoidance * repulsive_weight
+
+        # add wander
+        steer += wander_force(self.vel, rng_seed=self._rng_seed) * 0.1
 
         # Integrate velocity and update position
         self.vel = integrate_velocity(self.vel, steer, dt, self.speed)
