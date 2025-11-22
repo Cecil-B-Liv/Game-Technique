@@ -13,7 +13,7 @@ import random
 from pygame.math import Vector2 as V2
 from utils import limit, circlecast_hits_any_rect
 from settings import (
-    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS, FLY_SPEED, FPS, NEIGHBOR_RADIUS,
+    ARRIVE_SLOW_RADIUS, ARRIVE_STOP_RADIUS, FLY_SPEED, FPS, FROG_SPEED, NEIGHBOR_RADIUS,
     AVOID_LOOKAHEAD, AVOID_ANGLE_INCREMENT, AVOID_MAX_ANGLE, SNAKE_SPEED
 )
 
@@ -363,15 +363,15 @@ def evade(pos, vel, threat_pos, threat_vel, max_speed):
         # Too close - flee in any direction
         return V2(-vel[0], -vel[1]) if vec_length(vel) > 0 else V2(1, 0) * max_speed
 
-    # FIXED: Use max_speed for consistent prediction
+    # Use max_speed for consistent prediction
     small_eps = 0.001
     prediction_time = distance / (max_speed + small_eps)
 
     # Predict future position
-    future_position = vec_add(threat_pos, vec_mul(threat_vel, prediction_time))
+    future_position = threat_pos + (threat_vel * prediction_time)
 
     # Flee from prediction
-    away = vec_sub(pos, future_position)
+    away = pos - future_position
 
     # Optional panic scaling
     panic_radius = 200.0
@@ -381,12 +381,11 @@ def evade(pos, vel, threat_pos, threat_vel, max_speed):
     else:
         intensity = 1.0
 
-    desired = vec_normalize(away)
-    desired = vec_mul(desired, max_speed * intensity)
+    desired = away.normalize()
+    desired = desired * max_speed * intensity
 
-    steer = vec_sub(desired, vel)
+    steer = desired - vel
     return V2(steer)
-
 
 def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18.0, rng_seed=None):
     """
