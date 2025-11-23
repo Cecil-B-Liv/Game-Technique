@@ -141,3 +141,9 @@ class Frog:
 
         txt = self.font.render(state_text, True, text_color)
         surf.blit(txt, (self.pos.x - txt.get_width()/2, self.pos.y - self.radius - 16))
+        
+        # Draw a line from snake to where it's heading
+        if self.vel.length() > 1:
+            end_point = self.pos + self.vel.normalize() * 100
+            pygame.draw.line(surf, (255, 200, 200), self.pos, end_point, 2)
+        

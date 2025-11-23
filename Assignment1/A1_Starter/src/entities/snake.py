@@ -174,7 +174,7 @@ class Snake:
         steer += obstacle_avoidance * repulsive_weight
 
         # add wander
-        steer += wander_force(self.vel, rng_seed=self._rng_seed) * 0.1
+        steer += wander_force(self.vel, rng_seed=self._rng_seed) * 0.05
 
         # Integrate velocity and update position
         self.vel = integrate_velocity(self.vel, steer, dt, self.speed)
@@ -208,3 +208,11 @@ class Snake:
         txt = self.font.render(self.state.name, True, (255, 255, 255))
         surf.blit(txt, (self.pos.x - txt.get_width() /
                   2, self.pos.y - self.radius-16))
+
+        # VISUALIZATION: Show prediction when in Aggro state
+        if self.state == SnakeState.Aggro:
+            # Draw a line from snake to where it's heading
+            if self.vel.length() > 1:
+                end_point = self.pos + self.vel.normalize() * 100
+                pygame.draw.line(surf, (255, 200, 200), self.pos, end_point, 2)
+    

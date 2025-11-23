@@ -114,7 +114,7 @@ def flee(pos, vel, target, max_speed):
     panic_radius = 200.0  # can be tuned
     if distance < panic_radius:
         intensity = panic_radius / distance
-        intensity = min(intensity, 3.0)  # Cap at 3x speed
+        intensity = min(intensity, 2.0)  # Cap at 2x speed
     else:
         intensity = 1.0  # Normal flee speed when far
 
@@ -328,8 +328,8 @@ def pursue(pos, vel, target_pos, target_vel, max_speed):
     Replace simple seek in Snake Aggro with pursue for better interception.
     """
     # Get distance to target's current position
-    to_target = vec_sub(target_pos, pos)
-    distance = vec_length(to_target)
+    to_target = target_pos - pos
+    distance = to_target.length()
 
     if distance < 0.01:
         return V2(0, 0)
@@ -339,15 +339,15 @@ def pursue(pos, vel, target_pos, target_vel, max_speed):
     prediction_time = distance / (max_speed + small_eps)
 
     # Predict future position
-    future_position = vec_add(target_pos, vec_mul(target_vel, prediction_time))
+    future_position = target_pos + (target_vel * prediction_time*2.0)
 
-    # Calculate desired velocity toward PREDICTED position
-    desired = vec_sub(future_position, pos)
-    desired = vec_normalize(desired)
-    desired = vec_mul(desired, max_speed)
+    # Calculate desired velocity toward predict position
+    desired = future_position - pos
+    desired = desired.normalize()
+    desired = desired * max_speed
 
     # Calculate steering force (Reynolds steering formula)
-    steer = vec_sub(desired, vel)
+    steer = desired - vel
     return V2(steer)
 
 
@@ -356,36 +356,26 @@ def evade(pos, vel, threat_pos, threat_vel, max_speed):
     Predict the future position of a threat then flee from that point.
     This is the inverse of pursue. Use the same prediction idea.
     """
-    to_threat = vec_sub(threat_pos, pos)
-    distance = vec_length(to_threat)
+    distance = (threat_pos - pos).length()
+    threat_speed = threat_vel.length()
 
-    if distance < 0.01:
-        # Too close - flee in any direction
-        return V2(-vel[0], -vel[1]) if vec_length(vel) > 0 else V2(1, 0) * max_speed
+    if threat_speed < 0.01:
+        threat_speed = max_speed  # prevent division by zero
 
-    # Use max_speed for consistent prediction
+    # Normal prediction
     small_eps = 0.001
-    prediction_time = distance / (max_speed + small_eps)
+    prediction_time = distance / (threat_speed + small_eps)
 
-    # Predict future position
     future_position = threat_pos + (threat_vel * prediction_time)
 
-    # Flee from prediction
-    away = pos - future_position
+    desired = pos - future_position
+    if desired.length() < 0.01:
+        return V2(0, 0)
 
-    # Optional panic scaling
-    panic_radius = 200.0
-    if distance < panic_radius:
-        intensity = panic_radius / distance
-        intensity = min(intensity, 3.0)
-    else:
-        intensity = 1.0
-
-    desired = away.normalize()
-    desired = desired * max_speed * intensity
-
+    desired = desired.normalize() * max_speed
     steer = desired - vel
-    return V2(steer)
+    return steer
+
 
 def wander_force(me_vel, jitter_deg=12.0, circle_distance=24.0, circle_radius=18.0, rng_seed=None):
     """

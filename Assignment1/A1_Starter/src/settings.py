@@ -35,7 +35,7 @@ BUBBLE_LIFETIME = 2.0     # seconds before the bubble pops automatically
 
 # Fly setup
 NUM_FLIES = 30        # how many flies spawn
-FLY_RADIUS = 8            # fly draw and collision radius
+FLY_RADIUS = 8           # fly draw and collision radius
 FLY_SPEED = 120.0        # fly max speed
 
 # Boids neighborhood and weights
