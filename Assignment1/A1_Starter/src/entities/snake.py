@@ -117,7 +117,7 @@ class Snake:
         # Harmless snake returns home after pacification
         elif self.state == SnakeState.Harmless:
             # When harmless snake reaches home, enter Confused briefly then resume patrol
-            if (self.home - self.pos).length() < 12:
+            if (self.home - self.pos).length() < 30:
                 self.confused_timer = 1.5  # seconds of confusion
                 self.set_state(SnakeState.Confused)
         # Confused state times out to PatrolAway
@@ -127,8 +127,8 @@ class Snake:
                 self.set_state(SnakeState.PatrolAway)
 
         # ---------------- State behaviours ----------------
-        avoidance_weight = 2.0  # tune obstacle avoidance strength for all snakes
-        repulsive_weight = 5.0  # tune overall repulsive force weight
+        avoidance_weight = 2.5  # tune obstacle avoidance strength for all snakes
+        repulsive_weight = 7.0  # tune overall repulsive force weight
         if self.state == SnakeState.Aggro:
             self.color = (255, 150, 150)
             # TODO: replace seek with pursue for smarter interception
@@ -144,12 +144,12 @@ class Snake:
             steer += seek_with_avoid(self.pos, self.vel, self.patrol_point,
                                      self.speed, self.radius, self.rects) * avoidance_weight
 
-            if (self.patrol_point - self.pos).length() < 35:
+            if (self.patrol_point - self.pos).length() < 45:
                 self.set_state(SnakeState.PatrolHome)  # turn green
 
         elif self.state == SnakeState.PatrolHome:  # patrol back to home
             self.color = (180, 220, 180)  # greenish
-            steer = arrive(self.pos, self.vel, self.home, self.speed)
+            steer = arrive(self.pos, self.vel, self.home, self.speed) * 1.7
             steer += seek_with_avoid(self.pos, self.vel, self.home,
                                      self.speed, self.radius, self.rects) * avoidance_weight
             if (self.home - self.pos).length() < 35:
@@ -157,14 +157,17 @@ class Snake:
 
         elif self.state == SnakeState.Harmless:
             self.color = (190, 180, 255)  # purpleish
-            steer = arrive(self.pos, self.vel, self.home, self.speed * 0.9)
+            steer = arrive(self.pos, self.vel, self.home,
+                           self.speed * 0.9) * 1.5
             steer += seek_with_avoid(
-                self.pos, self.vel, self.home, self.speed * 0.9, self.radius, self.rects) * avoidance_weight
+                self.pos, self.vel, self.home, self.speed * 0.9, self.radius, self.rects) * avoidance_weight * 0.9
 
         else:  # Confused
             self.color = (245, 210, 160)
             # TODO: use wander_force for a gentle random walk during confusion
             steer = wander_force(self.vel, rng_seed=self._rng_seed)
+            steer += seek_with_avoid(
+                self.pos, self.vel, self.home, self.speed * 0.9, self.radius, self.rects) * avoidance_weight * 0.9
             # steer = V2()
 
         # add obstacle avoidance to all states
@@ -174,7 +177,7 @@ class Snake:
         steer += obstacle_avoidance * repulsive_weight
 
         # add wander
-        steer += wander_force(self.vel, rng_seed=self._rng_seed) * 0.05
+        steer += wander_force(self.vel, rng_seed=self._rng_seed) * 0.1
 
         # Integrate velocity and update position
         self.vel = integrate_velocity(self.vel, steer, dt, self.speed)
@@ -215,4 +218,3 @@ class Snake:
             if self.vel.length() > 1:
                 end_point = self.pos + self.vel.normalize() * 100
                 pygame.draw.line(surf, (255, 200, 200), self.pos, end_point, 2)
-    

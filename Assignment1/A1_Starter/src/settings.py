@@ -64,9 +64,9 @@ DEAGGRO_RANGE = 360.0     # stop chasing when frog moves this far
 # Obstacle avoidance tuning
 AVOID_LOOKAHEAD = 260.0   # how far the snake looks ahead when checking a corridor
 # degrees to rotate per step when searching for a free path
-AVOID_ANGLE_INCREMENT = 12 
+AVOID_ANGLE_INCREMENT = 12
 AVOID_MAX_ANGLE = 84 + 6   # maximum deviation to try on either side
 
 # Game rules
-START_HEALTH = 30               # how many hits the frog can take
+START_HEALTH = 3             # how many hits the frog can take
 FLIES_TO_WIN = 10                # win condition counter

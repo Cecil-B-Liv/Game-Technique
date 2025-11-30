@@ -142,7 +142,7 @@ def arrive(pos, vel, target, max_speed, slow_radius=ARRIVE_SLOW_RADIUS, stop_rad
     # Normalize direction
     desired = desired.normalize()
 
-    # Scale speed based on distance (check stop_radius FIRST!)
+    # Scale speed based on distance
     if distance < stop_radius:
         # Apply strong braking
         braking_force = -vel * 5
@@ -207,7 +207,11 @@ def boids_separation(me_pos, neighbors, sep_radius):
         # Average the separation vectors
         steering_sum /= count
         # Return the force vector (with magnitude)
-        return steering_sum.normalize() * FLY_SPEED * 1.5
+        if steering_sum.length() > 0.01:
+            return steering_sum.normalize() * FLY_SPEED * 1.5
+        else:
+            # All forces cancelled out - return zero
+            return V2()
 
     # No close neighbors -> no separation force
     return steering_sum*1.5*FLY_SPEED
@@ -231,7 +235,12 @@ def boids_cohesion(me_pos, neighbors):
         center_of_mass /= count
         desired = center_of_mass - me_pos  # Point toward center
         # Return the force vector (with magnitude based on distance)
-        return desired.normalize()*FLY_SPEED
+
+        if desired.length() > 0.01:
+            return desired.normalize() * FLY_SPEED
+        else:
+            # Already at center - no cohesion needed
+            return V2()
 
     return center_of_mass*FLY_SPEED
 
@@ -255,7 +264,11 @@ def boids_alignment(me_vel, neighbors):
         # Steering force to match average velocity
         steer = avg_velocity - me_vel
         # Return the steering force (with magnitude)
-        return steer.normalize() * FLY_SPEED
+        if steer.length() > 0.01:
+            return steer.normalize() * FLY_SPEED
+        else:
+            # Already aligned - no steering needed
+            return V2()
 
     return avg_velocity*FLY_SPEED
 
