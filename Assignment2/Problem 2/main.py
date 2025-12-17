@@ -3,7 +3,7 @@ import sys
 
 # === Import core modules and configuration ===
 from game import Connect4State  # Game state and logic
-from mcts import mcts_search, ai_play_move  # MCTS AI logic
+from mcts import mcts_search, ai_play_move, analyze_move_win_rates  # MCTS AI logic
 from config import (  # Game constants and color settings
     PLAYER1,
     PLAYER2,
@@ -19,9 +19,14 @@ from config import (  # Game constants and color settings
     PLAYER2_COLOR,
     HINT_COLOR,
     TEXT_COLOR,
+    WIN_RATE_BAR_BG,
+    WIN_RATE_BAR_FG,
     SIZE,
     FPS,
-    AI_ITER
+    AI_ITER,
+    SHOW_WIN_RATES,
+    WIN_RATE_ITERATIONS,
+    COLS,
 )
 
 # ============================================
@@ -45,8 +50,8 @@ def simulate_games(simulations=100):
         # Play a single game until it ends
         while not game_over:
             # AI turn logic: let the AI play for the current player
-            move = ai_play_move(state, n_iter=AI_ITER[state.current_player])
-            state.make_move(move)
+            move, stats = ai_play_move(
+                state, n_iter=AI_ITER[state.current_player])
 
             # Check for game end after each move
             game_over, message = check_game_over(state)
@@ -75,7 +80,7 @@ def simulate_games(simulations=100):
 
 def draw_player_turn(screen, font, current_player, game_over):
     """
-    Draw which player’s turn it currently is, along with their color.
+    Draw which player's turn it currently is, along with their color.
 
     Arguments:
         screen: The PyGame surface to draw on.
@@ -121,7 +126,131 @@ def draw_end_game_message(screen, font, message):
     )
 
 
-def draw_board(screen, state, font, hint_col=None, message="", game_over=False):
+def draw_mcts_stats(screen, font, mcts_data, current_player):
+    """
+    Draw MCTS statistics including visit counts, win rates, and UCB scores.
+
+    Arguments:
+        screen: The PyGame surface to draw on.
+        font: The PyGame font object for rendering text.
+        mcts_data: Dictionary containing 'win_rates', 'visits', and 'ucb_scores'.
+        current_player: The player for whom the stats are calculated.
+    """
+    if not mcts_data or 'visits' not in mcts_data:
+        return
+
+    small_font = pygame.font.SysFont("arial", 16, bold=True)
+    tiny_font = pygame.font.SysFont("arial", 14, bold=True)
+
+    bar_height = 50
+    bar_y = SQUARESIZE + 5
+
+    win_rates = mcts_data.get('win_rates', {})
+    visits = mcts_data.get('visits', {})
+    ucb_scores = mcts_data.get('ucb_scores', {})
+
+    for col in range(COLS):
+        x = col * SQUARESIZE + 10
+        bar_width = SQUARESIZE - 20
+
+        # Draw background bar
+        bg_rect = pygame.Rect(x, bar_y, bar_width, bar_height)
+        pygame.draw.rect(screen, WIN_RATE_BAR_BG, bg_rect, border_radius=4)
+
+        # Draw win rate bar if available
+        if col in win_rates:
+            win_rate = win_rates[col]
+            fg_width = int(bar_width * win_rate)
+            fg_rect = pygame.Rect(x, bar_y, fg_width, bar_height)
+
+            # Color gradient based on win rate
+            if win_rate >= 0.6:
+                color = (100, 220, 100)  # Green for good moves
+            elif win_rate >= 0.4:
+                color = (240, 220, 70)   # Yellow for neutral moves
+            else:
+                color = (220, 100, 100)  # Red for bad moves
+
+            pygame.draw.rect(screen, color, fg_rect, border_radius=4)
+
+            # Draw win rate percentage with outline
+            percentage_text = f"{int(win_rate * 100)}%"
+
+            # Black outline for win rate
+            for offset_x in [-1, 0, 1]:
+                for offset_y in [-1, 0, 1]:
+                    if offset_x != 0 or offset_y != 0:
+                        outline_surf = small_font.render(
+                            percentage_text, True, (0, 0, 0))
+                        text_x = x + bar_width // 2 - outline_surf.get_width() // 2 + offset_x
+                        text_y = bar_y + 8 + offset_y
+                        screen.blit(outline_surf, (text_x, text_y))
+
+            # White text on top
+            text_surf = small_font.render(
+                percentage_text, True, (255, 255, 255))
+            text_x = x + bar_width // 2 - text_surf.get_width() // 2
+            text_y = bar_y + 8
+            screen.blit(text_surf, (text_x, text_y))
+
+            # Draw visit count
+            if col in visits:
+                visit_text = f"Visits:{visits[col]}"
+                visit_surf = tiny_font.render(
+                    visit_text, True, (200, 200, 200))
+                visit_x = x + bar_width // 2 - visit_surf.get_width() // 2
+                visit_y = bar_y + 28
+
+                # Draw outline for visibility
+                for offset_x in [-1, 0, 1]:
+                    for offset_y in [-1, 0, 1]:
+                        if offset_x != 0 or offset_y != 0:
+                            outline = tiny_font.render(
+                                visit_text, True, (0, 0, 0))
+                            screen.blit(
+                                outline, (visit_x + offset_x, visit_y + offset_y))
+
+                screen.blit(visit_surf, (visit_x, visit_y))
+
+
+def draw_ucb_message(screen, font, last_move_col, mcts_data):
+    """
+    Display the UCB score of the last move made by the AI.
+
+    Arguments:
+        screen: The PyGame surface to draw on.
+        font: The PyGame font object.
+        last_move_col: The column of the last move.
+        mcts_data: Dictionary containing UCB scores.
+    """
+    if last_move_col is None or not mcts_data or 'ucb_scores' not in mcts_data:
+        return
+
+    ucb_scores = mcts_data.get('ucb_scores', {})
+    if last_move_col not in ucb_scores:
+        return
+
+    ucb_score = ucb_scores[last_move_col]
+    small_font = pygame.font.SysFont("arial", 18, bold=True)
+
+    # Create UCB text
+    ucb_text = f"Last Move UCB: {ucb_score:.3f}"
+    text_surf = small_font.render(ucb_text, True, TEXT_COLOR)
+
+    # Draw with background for visibility
+    padding = 5
+    text_rect = text_surf.get_rect()
+    bg_rect = pygame.Rect(
+        SIZE[0] - text_rect.width - 20 - padding,
+        SQUARESIZE + 60,
+        text_rect.width + padding * 2,
+        text_rect.height + padding * 2
+    )
+    pygame.draw.rect(screen, (40, 40, 40), bg_rect, border_radius=4)
+    screen.blit(text_surf, (SIZE[0] - text_rect.width - 20, SQUARESIZE + 65))
+
+
+def draw_board(screen, state, font, hint_col=None, message="", game_over=False, mcts_data=None, last_ai_move=None):
     """
     Enhances the board drawing with dynamic data about the player's turn and game state.
 
@@ -129,6 +258,8 @@ def draw_board(screen, state, font, hint_col=None, message="", game_over=False):
         hint_col: Column index for the hint (highlighted during HUMAN_VS_AI mode).
         message: Optional status message for additional info like game state feedback.
         game_over: Stops rendering "Player Turn" when the game has ended.
+        mcts_data: Dictionary containing MCTS statistics (win rates, visits, UCB scores).
+        last_ai_move: The column of the last AI move (to display UCB).
     """
     # Fill background
     screen.fill(BACKGROUND_COLOR)
@@ -182,8 +313,15 @@ def draw_board(screen, state, font, hint_col=None, message="", game_over=False):
         )
 
     # Display player turn and HUD
-    # draw_player_turn(screen, font, state.current_player, game_over)
     draw_hud(screen, font, DEFAULT_GAME_MODE, state.current_player, message)
+
+    # Draw MCTS stats if available
+    if mcts_data and not game_over and SHOW_WIN_RATES:
+        draw_mcts_stats(screen, font, mcts_data, state.current_player)
+
+    # Draw UCB score of last AI move
+    if last_ai_move is not None and mcts_data:
+        draw_ucb_message(screen, font, last_ai_move, mcts_data)
 
     # Display the end-game message if applicable
     if game_over:
@@ -220,7 +358,7 @@ def check_game_over(state):
     return False, ""
 
 
-def animate_drop(screen, state, col, player, font, hint_col, message):
+def animate_drop(screen, state, col, player, font, hint_col, message, mcts_data=None, last_ai_move=None):
     """
     Animates a piece falling into the board.
 
@@ -232,6 +370,8 @@ def animate_drop(screen, state, col, player, font, hint_col, message):
         font: The PyGame font object.
         hint_col: The current hint column for AI moves.
         message: Text message to display at the top.
+        mcts_data: MCTS statistics to display.
+        last_ai_move: The column of the last AI move.
     """
     # Animate a piece falling into the correct row visually
     row = state.get_next_open_row(col)
@@ -247,7 +387,8 @@ def animate_drop(screen, state, col, player, font, hint_col, message):
     speed = 20  # Movement speed for the falling piece
 
     while y < target_y:
-        draw_board(screen, state, font, hint_col, message)
+        draw_board(screen, state, font, hint_col, message,
+                   mcts_data=mcts_data, last_ai_move=last_ai_move)
         pygame.draw.circle(screen, color, (x, int(y)), RADIUS)
         pygame.display.update()
         y += speed
@@ -291,37 +432,10 @@ def main():
     """
     thinking_frame = 0
 
-    pygame.init()
-    screen = pygame.display.set_mode(SIZE)
-    pygame.display.set_caption("Connect 4 with MCTS (Demonstration Edition)")
-    font = pygame.font.SysFont("arial", 30)
-    clock = pygame.time.Clock()
-
-    # Game State Initialization
-    state = Connect4State()
-    game_over = False
-    message = "Player 1 Turn"
-
-    # Initialize Game Mode
-    GAME_MODE = DEFAULT_GAME_MODE
-    hint_col = None
-
-    # Generate the first hint if playing Human vs AI
-    if GAME_MODE == HUMAN_VS_AI:
-        hint_col = mcts_search(state, n_iter=400)
-
-    # For testing
-    if GAME_MODE == AI_VS_AI:
-        simulate_games(simulations=20)
-    # Main Loop Flag
-    running = True
-
-    thinking_frame = 0  # Used for animating AI thinking dots
-
     # Initialize PyGame and window
     pygame.init()
     screen = pygame.display.set_mode(SIZE)
-    pygame.display.set_caption("Connect 4 with MCTS (Demonstration Edition)")
+    pygame.display.set_caption("Connect 4 with MCTS (Enhanced Edition)")
     font = pygame.font.SysFont("arial", 30)
     clock = pygame.time.Clock()
 
@@ -333,14 +447,23 @@ def main():
     # Set the game mode (Human vs Human, Human vs AI, AI vs AI)
     GAME_MODE = DEFAULT_GAME_MODE
     hint_col = None
+    mcts_data = {}
+    last_ai_move = None
 
-    # Generate the first AI hint if playing Human vs AI
-    if GAME_MODE == HUMAN_VS_AI:
-        hint_col = mcts_search(state, n_iter=400)
+    # Generate the first AI hint and MCTS stats if playing Human vs AI
+    if GAME_MODE == HUMAN_VS_AI and SHOW_WIN_RATES:
+        message = "Analyzing moves..."
+        draw_board(screen, state, font, hint_col,
+                   message, game_over, mcts_data)
+        mcts_data = analyze_move_win_rates(state, n_iter=WIN_RATE_ITERATIONS)
+        if mcts_data and 'win_rates' in mcts_data:
+            hint_col = max(
+                mcts_data['win_rates'], key=mcts_data['win_rates'].get) if mcts_data['win_rates'] else None
+        message = "Your Turn"
 
     # For testing: run AI vs AI simulations if selected
-    if GAME_MODE == AI_VS_AI:
-        simulate_games(simulations=20)
+    # if GAME_MODE == AI_VS_AI:
+    #     simulate_games(simulations=10)
 
     running = True  # Main loop flag
 
@@ -355,18 +478,32 @@ def main():
                 if event.key == pygame.K_r:  # Reset the game
                     state = Connect4State()
                     game_over = False
-                    message = "Player 1 Turn"
-                    hint_col = mcts_search(
-                        state, n_iter=400) if GAME_MODE == HUMAN_VS_AI else None
+                    last_ai_move = None
+                    message = "Analyzing moves..." if GAME_MODE == HUMAN_VS_AI and SHOW_WIN_RATES else "Player 1 Turn"
+
+                    if GAME_MODE == HUMAN_VS_AI and SHOW_WIN_RATES:
+                        draw_board(screen, state, font, None,
+                                   message, game_over, {})
+                        mcts_data = analyze_move_win_rates(
+                            state, n_iter=WIN_RATE_ITERATIONS)
+                        if mcts_data and 'win_rates' in mcts_data:
+                            hint_col = max(
+                                mcts_data['win_rates'], key=mcts_data['win_rates'].get) if mcts_data['win_rates'] else None
+                        message = "Your Turn"
+                    else:
+                        hint_col = None
+                        mcts_data = {}
 
             # Handle mouse clicks for human moves
             if event.type == pygame.MOUSEBUTTONDOWN and not game_over and GAME_MODE in [HUMAN_VS_HUMAN, HUMAN_VS_AI]:
                 col = event.pos[0] // SQUARESIZE
                 if col in state.get_legal_moves():
                     animate_drop(screen, state, col,
-                                 state.current_player, font, hint_col, message)
+                                 state.current_player, font, hint_col, message, mcts_data, last_ai_move)
                     state.make_move(col)
                     thinking_frame = 0
+                    mcts_data = {}  # Clear MCTS data after move
+                    last_ai_move = None
 
                     # Check if the game is over after human move
                     game_over, message = check_game_over(state)
@@ -378,36 +515,56 @@ def main():
                             f"AI Player {state.current_player} thinking", thinking_frame
                         )
                         draw_board(screen, state, font, hint_col=None,
-                                   message=message, game_over=game_over)
+                                   message=message, game_over=game_over, mcts_data=None, last_ai_move=None)
 
                         # Remember current player before the AI makes the move
                         ai_player = state.current_player
 
-                        # AI makes its move
-                        ai_move = ai_play_move(
+                        # AI makes its move and gets statistics
+                        ai_move, ai_stats = ai_play_move(
                             state, n_iter=AI_ITER[ai_player])
+
+                        last_ai_move = ai_move
 
                         # Animate drop for the correct player (ai_player)
                         animate_drop(screen, state, ai_move,
-                                     ai_player, font, hint_col, message)
+                                     ai_player, font, hint_col, message, ai_stats, last_ai_move)
 
                         # Check if the game is over after AI move
                         game_over, message = check_game_over(state)
+
+                        # Calculate new MCTS stats for human's next turn
+                        if not game_over and SHOW_WIN_RATES:
+                            message = "Analyzing moves..."
+                            draw_board(screen, state, font, None,
+                                       message, game_over, {}, last_ai_move)
+                            mcts_data = analyze_move_win_rates(
+                                state, n_iter=WIN_RATE_ITERATIONS)
+                            if mcts_data and 'win_rates' in mcts_data:
+                                hint_col = max(
+                                    mcts_data['win_rates'], key=mcts_data['win_rates'].get) if mcts_data['win_rates'] else None
+                            message = "Your Turn"
 
         # AI vs AI Logic: let both AIs play automatically
         if not game_over and GAME_MODE == AI_VS_AI:
             pygame.time.delay(500)  # Slow down for visibility
             message = f"AI Player {state.current_player} is thinking..."
             draw_board(screen, state, font, hint_col=None,
-                       message=message, game_over=game_over)
-            move = ai_play_move(state, n_iter=AI_ITER[state.current_player])
-            animate_drop(screen, state, move, state.current_player ^
-                         3, font, hint_col, message)
+                       message=message, game_over=game_over, mcts_data=None, last_ai_move=last_ai_move)
+
+            ai_player = state.current_player
+            move, ai_stats = ai_play_move(state, n_iter=AI_ITER[ai_player])
+            last_ai_move = move
+
+            animate_drop(screen, state, move, ai_player,
+                         font, hint_col, message, ai_stats, last_ai_move)
             thinking_frame = 0
             game_over, message = check_game_over(state)
 
         # Draw the updated board after every event/AI move
-        draw_board(screen, state, font, hint_col, message, game_over=game_over)
+        draw_board(screen, state, font, hint_col, message, game_over=game_over,
+                   mcts_data=mcts_data, last_ai_move=last_ai_move)
+        clock.tick(FPS)
 
     # Exit the Game Loop and close PyGame
     pygame.quit()

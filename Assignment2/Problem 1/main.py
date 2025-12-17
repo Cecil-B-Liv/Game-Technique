@@ -21,7 +21,7 @@ import pygame
 
 class Frog:
     def __init__(self, start_cell):
-        self.speed = 250  # pixels per second
+        self.speed = 200  # pixels per second
         self.radius = 8
 
         self.pos = self.cell_center(start_cell)
