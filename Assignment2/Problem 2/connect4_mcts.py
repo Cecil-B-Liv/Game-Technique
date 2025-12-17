@@ -35,13 +35,36 @@ PLAYER2 = 2    # Player 2 piece (yellow)
 SQUARESIZE = 100
 RADIUS = SQUARESIZE // 2 - 5
 
+# Game modes constants
+HUMAN_VS_HUMAN = 0
+HUMAN_VS_AI = 1
+AI_VS_AI = 2
+
+# AI difficulty (iterations per player)
+AI_ITER = {
+    PLAYER1: 300,   # weaker AI
+    PLAYER2: 100    # stronger AI
+}
+
+
 # Colors are given in RGB format (red, green, blue)
-BOARD_COLOR = (0, 0, 200)        # Blue board background
-BG_COLOR = (0, 0, 0)             # Black background
-PLAYER1_COLOR = (200, 0, 0)      # Red discs for player 1
-PLAYER2_COLOR = (230, 230, 0)    # Yellow discs for player 2
-TEXT_COLOR = (255, 255, 255)     # White text
-HINT_COLOR = (0, 200, 0)         # Green hint marker
+# BOARD_COLOR = (0, 0, 200)        # Blue board background
+# BG_COLOR = (0, 0, 0)             # Black background
+# PLAYER1_COLOR = (200, 0, 0)      # Red discs for player 1
+# PLAYER2_COLOR = (230, 230, 0)    # Yellow discs for player 2
+# TEXT_COLOR = (255, 255, 255)     # White text
+# HINT_COLOR = (0, 200, 0)         # Green hint marker
+
+BACKGROUND_COLOR = (30, 30, 30)
+BOARD_COLOR = (20, 60, 120)
+
+PLAYER1_COLOR = (220, 50, 50)    # red
+PLAYER2_COLOR = (240, 220, 70)   # yellow
+
+HINT_COLOR = (80, 200, 120)
+TEXT_COLOR = (240, 240, 240)
+BG_COLOR = BACKGROUND_COLOR
+
 
 # Screen size
 WIDTH = COLS * SQUARESIZE
@@ -206,11 +229,16 @@ class Connect4State:
             return True
         return False
 
+    def get_next_open_row(self, col):
+        for r in range(ROWS - 1, -1, -1):
+            if self.board[r][col] == EMPTY:
+                return r
+        return None
+
 
 # ============================================================
 #                 PART 3 - MCTS EXPLANATION
 # ============================================================
-
 """
 Let me now explain the Monte Carlo Tree Search (MCTS) algorithm that we will use
 to suggest a good move as a hint for the current player.
@@ -490,6 +518,55 @@ def mcts_search(root_state, n_iter=400):
     return best_child.move
 
 
+def is_human_turn(mode, current_player):
+    if mode == HUMAN_VS_HUMAN:
+        return True
+    if mode == HUMAN_VS_AI:
+        return current_player == PLAYER1
+    if mode == AI_VS_AI:
+        return False
+    return False
+
+
+def ai_play_move(state, n_iter=500):
+    move = mcts_search(state, n_iter=n_iter)
+    if move is not None:
+        state.make_move(move)
+    return move
+
+
+def check_game_over(state):
+    winner = state.check_winner()
+    if winner is not None:
+        return True, f"Player {winner} wins, press R to restart"
+    if state.is_full():
+        return True, "Draw, press R to restart"
+    return False, None
+
+
+def animate_drop(screen, state, col, player, font, hint_col, message):
+    row = state.get_next_open_row(col)
+    if row is None:
+        return
+
+    x = col * SQUARESIZE + SQUARESIZE // 2
+    start_y = SQUARESIZE // 2
+    target_y = (row + 1) * SQUARESIZE + SQUARESIZE // 2
+
+    color = PLAYER1_COLOR if player == PLAYER1 else PLAYER2_COLOR
+
+    y = start_y
+    speed = 20  # pixels per frame
+
+    while y < target_y:
+        draw_board(screen, state, font, hint_col, message)
+        pygame.draw.circle(screen, color, (x, int(y)), RADIUS)
+        pygame.display.update()
+
+        y += speed
+        pygame.time.delay(16)
+
+
 # ============================================================
 #             PART 5 - DRAWING THE GAME WITH PYGAME
 # ============================================================
@@ -596,85 +673,183 @@ def main():
     """
     pygame.init()
 
-    # Create the screen and set the title
     screen = pygame.display.set_mode(SIZE)
-    pygame.display.set_caption("MCTS Connect4- 2 human players")
+    pygame.display.set_caption("MCTS Connect4")
 
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("arial", 24)
 
-    # Start with a fresh game state
+    # ==========================
+    # SELECT GAME MODE HERE
+    # ==========================
+    # GAME_MODE = HUMAN_VS_AI
+    GAME_MODE = AI_VS_AI
+    # GAME_MODE = HUMAN_VS_HUMAN
+
     state = Connect4State()
     game_over = False
 
-    # hint_col will store the column suggested by MCTS
+    message = "Player 1 turn"
     hint_col = None
 
-    # Message at the top of the screen
-    message = "Player 1 turn"
-
-    # Compute the first hint for player 1
-    hint_col = mcts_search(state, n_iter=400)
+    # Only show hints if a human is playing
+    if GAME_MODE != AI_VS_AI:
+        hint_col = mcts_search(state, n_iter=400)
 
     running = True
     while running:
-        # Limit the game loop speed to FPS frames per second
         clock.tick(FPS)
 
-        # Handle events from Pygame (mouse, keyboard, window close)
+        # ==========================
+        # EVENT HANDLING
+        # ==========================
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                # Window close button clicked
                 running = False
 
             if event.type == pygame.KEYDOWN:
-                # If player presses R, reset the game
                 if event.key == pygame.K_r:
                     state = Connect4State()
                     game_over = False
                     message = "Player 1 turn"
-                    hint_col = mcts_search(state, n_iter=400)
+                    hint_col = (
+                        mcts_search(state, n_iter=400)
+                        if GAME_MODE != AI_VS_AI
+                        else None
+                    )
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # If mouse is clicked and the game is still running
-                if not game_over:
-                    # Get mouse position and convert to column index
-                    x, _ = event.pos
-                    col = x // SQUARESIZE
+            # --------------------------
+            # HUMAN INPUT
+            # --------------------------
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and not game_over
+                and is_human_turn(GAME_MODE, state.current_player)
+            ):
+                x, _ = event.pos
+                col = x // SQUARESIZE
 
-                    # Check that the chosen column is a legal move
-                    legal_moves = state.get_legal_moves()
-                    if col in legal_moves:
-                        # Apply this move
-                        state.make_move(col)
+                if col in state.get_legal_moves():
+                    animate_drop(
+                        screen,
+                        state,
+                        col,
+                        state.current_player,
+                        font,
+                        hint_col,
+                        message
+                    )
+                    state.make_move(col)
 
-                        # Check if this move wins the game
-                        winner = state.check_winner()
-                        if winner == PLAYER1:
-                            message = "Player 1 wins, press R to restart"
-                            game_over = True
-                            hint_col = None
-                        elif winner == PLAYER2:
-                            message = "Player 2 wins, press R to restart"
-                            game_over = True
-                            hint_col = None
-                        elif state.is_full():
-                            # No more moves and no winner
-                            message = "Draw, press R to restart"
-                            game_over = True
-                            hint_col = None
-                        else:
-                            # Game continues, switch message to the next player
-                            current = state.current_player
-                            message = f"Player {current} turn"
+                    game_over, end_msg = check_game_over(state)
+                    if game_over:
+                        message = end_msg
+                        hint_col = None
+                    else:
+                        message = f"Player {state.current_player} turn"
+                        hint_col = (
+                            mcts_search(state, n_iter=400)
+                            if GAME_MODE != AI_VS_AI
+                            else None
+                        )
 
-                            # Compute new hint for the new current player
-                            hint_col = mcts_search(state, n_iter=400)
+        # ==========================
+        # AI TURN (AUTOMATIC)
+        # ==========================
+        # if (
+        #     not game_over
+        #     and not is_human_turn(GAME_MODE, state.current_player)
+        # ):
+        #     pygame.time.delay(100 if GAME_MODE == AI_VS_AI else 300)
 
-        # Draw the current frame
+        #     message = "AI is thinking..."
+        #     draw_board(screen, state, font, hint_col, message)
+        #     pygame.display.update()
+
+        #     if GAME_MODE == AI_VS_AI:
+        #         ai_play_move(state, n_iter=AI_ITER[state.current_player])
+        #     else:
+        #         ai_play_move(state, n_iter=500)
+
+        #     game_over, end_msg = check_game_over(state)
+        #     if game_over:
+        #         message = end_msg
+        #         hint_col = None
+        #     else:
+        #         message = f"Player {state.current_player} turn"
+        #         hint_col = (
+        #             mcts_search(state, n_iter=400)
+        #             if GAME_MODE != AI_VS_AI
+        #             else None
+        #         )
+        # ==========================
+        # AI TURN (AUTOMATIC)
+        # ==========================
+        if (
+            not game_over
+            and not is_human_turn(GAME_MODE, state.current_player)
+        ):
+            pygame.time.delay(100 if GAME_MODE == AI_VS_AI else 300)
+
+            # Show thinking message
+            message = "AI is thinking..."
+            draw_board(screen, state, font, None, message)
+            pygame.display.update()
+
+            # 1. AI decides move
+            n_iter = (
+                AI_ITER[state.current_player]
+                if GAME_MODE == AI_VS_AI
+                else 500
+            )
+            move = mcts_search(state, n_iter=n_iter)
+
+            # 2. Animate drop
+            if move is not None:
+                animate_drop(
+                    screen,
+                    state,
+                    move,
+                    state.current_player,
+                    font,
+                    None,        # disable hint during animation
+                    message
+                )
+
+                # 3. Apply move AFTER animation
+                state.make_move(move)
+
+            # 4. Check game end
+            game_over, end_msg = check_game_over(state)
+            if game_over:
+                message = end_msg
+                hint_col = None
+            else:
+                hint_col = (
+                    mcts_search(state, n_iter=400)
+                    if GAME_MODE != AI_VS_AI
+                    else None
+                )
+
+        mode_text = {
+            HUMAN_VS_HUMAN: "Human vs Human",
+            HUMAN_VS_AI: "Human vs AI",
+            AI_VS_AI: "AI vs AI"
+        }[GAME_MODE]
+
+        if not game_over:
+            if GAME_MODE == AI_VS_AI:
+                message = (
+                    f"{mode_text} | "
+                    f"AI1 ({AI_ITER[PLAYER1]}) vs "
+                    f"AI2 ({AI_ITER[PLAYER2]}) | "
+                    f"Player {state.current_player} turn"
+                )
+            else:
+                message = f"{mode_text} | Player {state.current_player} turn"
+
         draw_board(screen, state, font, hint_col, message)
 
-    # When running goes False, quit Pygame and exit the program
     pygame.quit()
     sys.exit()
 

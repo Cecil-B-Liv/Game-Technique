@@ -1,0 +1,30 @@
+# Board
+ROWS = 6
+COLS = 7
+EMPTY = 0
+
+PLAYER1 = 1
+PLAYER2 = 2
+
+# Game modes
+HUMAN_VS_HUMAN = 0
+HUMAN_VS_AI = 1
+AI_VS_AI = 2
+
+# AI strength
+AI_ITER = {
+    PLAYER1: 300,   # weaker AI
+    PLAYER2: 100    # stronger AI
+}
+
+# Visual
+SQUARESIZE = 100
+RADIUS = SQUARESIZE // 2 - 5
+FPS = 60
+
+BACKGROUND_COLOR = (30, 30, 30)
+BOARD_COLOR = (20, 60, 120)
+PLAYER1_COLOR = (220, 50, 50)
+PLAYER2_COLOR = (240, 220, 70)
+HINT_COLOR = (80, 200, 120)
+TEXT_COLOR = (240, 240, 240)
