@@ -264,8 +264,8 @@ def heuristic(a, b):
     dy = abs(r1 - r2)
 
     # return dx + dy  # Manhattan distance
-    # return (dx + dy) + (math.sqrt(2) - 2) * min(dx, dy) # Octile distance
-    return math.hypot(c1 - c2, r1 - r2)  # Euclidean distance
+    return (dx + dy) + (math.sqrt(2) - 2) * min(dx, dy) # Octile distance
+    # return math.hypot(c1 - c2, r1 - r2)  # Euclidean distance
 
 
 def get_neighbors(cell):
@@ -309,9 +309,9 @@ def astar_stepper():
     open_set = {start}
     closed_set = set()
 
-    g_score = {start: 0}
-    h_score = {start: heuristic(start, goal)}
-    f_score = {start: h_score[start]}
+    g_score = {start: 0} # Cost from start to current
+    h_score = {start: heuristic(start, goal)} # Heuristic cost to goal
+    f_score = {start: h_score[start]} # Total cost
 
     current_g = g_score.copy()
     current_h = h_score.copy()
@@ -446,8 +446,8 @@ def main():
         frog.draw(screen)
 
         help_text = (
-            "LMB: wall  RMB: start  MMB: goal  "
-            "SPACE: run A*  P: path lines  C: costs  ESC: quit"
+            "leftClick:wall |rightClick:goal |middleClick:start |D:Switch mode  "
+            "SPACE:run A* |P: show path |C: costs |ESC: quit"
         )
         screen.blit(font.render(help_text, True, COLOR_TEXT),
                     (10, WINDOW_HEIGHT - 24))

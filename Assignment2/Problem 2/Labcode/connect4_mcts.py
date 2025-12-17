@@ -682,8 +682,8 @@ def main():
     # ==========================
     # SELECT GAME MODE HERE
     # ==========================
-    # GAME_MODE = HUMAN_VS_AI
-    GAME_MODE = AI_VS_AI
+    GAME_MODE = HUMAN_VS_AI
+    # GAME_MODE = AI_VS_AI
     # GAME_MODE = HUMAN_VS_HUMAN
 
     state = Connect4State()
@@ -753,35 +753,6 @@ def main():
                             else None
                         )
 
-        # ==========================
-        # AI TURN (AUTOMATIC)
-        # ==========================
-        # if (
-        #     not game_over
-        #     and not is_human_turn(GAME_MODE, state.current_player)
-        # ):
-        #     pygame.time.delay(100 if GAME_MODE == AI_VS_AI else 300)
-
-        #     message = "AI is thinking..."
-        #     draw_board(screen, state, font, hint_col, message)
-        #     pygame.display.update()
-
-        #     if GAME_MODE == AI_VS_AI:
-        #         ai_play_move(state, n_iter=AI_ITER[state.current_player])
-        #     else:
-        #         ai_play_move(state, n_iter=500)
-
-        #     game_over, end_msg = check_game_over(state)
-        #     if game_over:
-        #         message = end_msg
-        #         hint_col = None
-        #     else:
-        #         message = f"Player {state.current_player} turn"
-        #         hint_col = (
-        #             mcts_search(state, n_iter=400)
-        #             if GAME_MODE != AI_VS_AI
-        #             else None
-        #         )
         # ==========================
         # AI TURN (AUTOMATIC)
         # ==========================
