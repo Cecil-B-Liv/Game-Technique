@@ -13,8 +13,8 @@ DEFAULT_CFG = {
     "epsilonEnd": 0.05,
     "epsilonDecayEpisodes": 700,
     "maxStepsPerEpisode": 400,
-    "fpsVisual": 30,
-    "fpsFast":  240,
+    "fpsVisual": 60,
+    "fpsFast":  480,
     "tileSize": 48,
     "seed": 42
 }
