@@ -3,6 +3,7 @@ Training loop for Q-Learning agent
 """
 
 import pygame
+import matplotlib
 from .environment import GridWorld
 from .agent import QLearningAgent
 from .renderer import Renderer
@@ -40,7 +41,10 @@ class Trainer:
         
         self.visualize = True  # Start in visual mode
         self.running = True
-    
+
+        # Use for plot the learning curve
+        self.episode_returns = []
+
     def train(self):
         """Main training loop"""
         for episode in range(self.config. episodes):
@@ -55,6 +59,7 @@ class Trainer:
         
         # Cleanup
         self.renderer.quit()
+        self._plot_learning_curve()
         print(f"✓ Training complete!  {self.config.episodes} episodes")
     
     def _run_episode(self, episode: int):
@@ -95,6 +100,9 @@ class Trainer:
             if result.done or steps >= self.config.max_steps:
                 # Draw final frame
                 self._render(episode, steps, total_reward)
+
+                # Get Value for plotting learning curve
+                self.episode_returns.append(total_reward)
                 break
     
     def _handle_events(self, episode: int) -> bool:
@@ -157,3 +165,31 @@ class Trainer:
             # In fast mode, still render occasionally
             if steps % 5 == 0:
                 self.renderer.tick(self.config.fps_fast)
+
+    def _plot_learning_curve(self):
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(8, 5))
+        plt.plot(self.episode_returns, alpha=0.4, label="Episode Return")
+
+        # Moving average (smooth)
+        window = 20
+        if len(self.episode_returns) >= window:
+            ma = [
+                sum(self.episode_returns[i:i + window]) / window
+                for i in range(len(self.episode_returns) - window + 1)
+            ]
+            plt.plot(
+                range(window - 1, len(self.episode_returns)),
+                ma,
+                linewidth=2,
+                label="Moving Avg (20)"
+            )
+
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.title(f"Q-Learning Learning Curve (Level {self.level})")
+        plt.legend()
+        plt.grid()
+        plt.tight_layout()
+        plt.show()
