@@ -39,7 +39,7 @@ class Renderer:
 
         # Path
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_idle_down")
+        self.agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
         # Animation
         self.agent_down_frames = []
         self.agent_down_frames_tick = 0
