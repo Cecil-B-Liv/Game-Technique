@@ -40,12 +40,41 @@ class Renderer:
         # Path
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
+        self.fire_frames_path = os.path.join(self.current_dir, "..", "sprites", "fire")
+
         # Animation
         self.agent_down_frames = []
         self.agent_down_frames_tick = 0
 
+        self.fire_frames = []
+        self.fire_frames_tick = 0
+
         # Load assets automatically
+        self.load_animation()
+
+    def load_animation(self):
         self.agent_load_animation(self.agent_down_frames_path)
+        self.fire_load_animation(self.fire_frames_path)
+
+    def fire_load_animation(self, folder_path: str):
+        """
+        Load fire animation
+        """
+        if not os.path.exists(folder_path):
+            print(f"Error: Folder {folder_path} not found.")
+            return
+
+        # Get all image files and sort them to ensure correct order
+        files = sorted([f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))])
+
+        for filename in files:
+            img_path = os.path.join(folder_path, filename)
+            img = pygame.image.load(img_path).convert_alpha()
+            img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+            self.fire_frames.append(img)
+
+        print(f"Loaded {len(self.fire_frames)} frames for agent animation.")
+
 
     def agent_load_animation(self, folder_path: str):
         """
@@ -156,17 +185,20 @@ class Renderer:
     
     def _draw_fires(self, env: GridWorld):
         """Draw fire as orange-red triangles"""
+
+        if not self.fire_frames:
+            return
+
+        animation_cooldown = len(self.fire_frames) * 1
+        frame_index = (self.fire_frames_tick // animation_cooldown) % len(self.fire_frames)
+        current_frame = self.fire_frames[frame_index]
+
         for pos in env.fires:
-            cx = pos[0] * self. tile_size + self.tile_size // 2
-            cy = pos[1] * self.tile_size + self.tile_size // 2
-            size = self.tile_size // 2
-            
-            points = [
-                (cx, cy - size),
-                (cx - size, cy + size),
-                (cx + size, cy + size)
-            ]
-            pygame.draw.polygon(self.screen, COL_FIRE, points)
+            x = pos[0] * self.tile_size
+            y = pos[1] * self.tile_size
+            self.screen.blit(current_frame, (x, y))
+
+        self.fire_frames_tick += 1
     
     def _draw_keys(self, env: GridWorld):
         """Draw keys as yellow circles"""
