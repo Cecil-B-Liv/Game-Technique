@@ -4,8 +4,8 @@ Reinforcement Learning Agents
 
 import random
 from typing import Tuple
-from .q_table import QTable
-from .constants import ALL_ACTIONS
+from Part1.src.q_table import QTable
+from Part1.src.constants import ALL_ACTIONS
 
 
 def linear_epsilon(episode:  int, start: float, end: float, decay_episodes: int) -> float:

@@ -1,6 +1,7 @@
 """
 Pygame renderer for GridWorld visualization
 """
+import os
 
 import pygame
 from typing import Optional
@@ -35,7 +36,36 @@ class Renderer:
         pygame.display.set_caption("GridWorld - Q-Learning")
         self.clock = pygame. time.Clock()
         self.font = pygame.font.SysFont("consolas", 18)
-    
+
+        # Path
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_idle_down")
+        # Animation
+        self.agent_down_frames = []
+        self.agent_down_frames_tick = 0
+
+        # Load assets automatically
+        self.agent_load_animation(self.agent_down_frames_path)
+
+    def agent_load_animation(self, folder_path: str):
+        """
+        Load the agent downward animation
+        """
+        if not os.path.exists(folder_path):
+            print(f"Error: Folder {folder_path} not found.")
+            return
+
+        # Get all image files and sort them to ensure correct order
+        files = sorted([f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))])
+
+        for filename in files:
+            img_path = os.path.join(folder_path, filename)
+            img = pygame.image.load(img_path).convert_alpha()
+            img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+            self.agent_down_frames.append(img)
+
+        print(f"Loaded {len(self.agent_down_frames)} frames for agent animation.")
+
     def draw(self, env: GridWorld, episode: int, step: int, 
              epsilon: float, total_reward: float, level: int = 0):
         """
@@ -91,15 +121,17 @@ class Renderer:
     
     def _draw_agent(self, env: GridWorld):
         """Draw the agent as a green square"""
+        animation_cooldown = len(self.agent_down_frames) * 2
+        frame_index = (self.agent_down_frames_tick // animation_cooldown) % len(self.agent_down_frames)
+        current_frame = self.agent_down_frames[frame_index]
+
+        #Calculate position
         ax, ay = env.agent
-        padding = 8
-        rect = pygame.Rect(
-            ax * self.tile_size + padding,
-            ay * self.tile_size + padding,
-            self. tile_size - 2 * padding,
-            self.tile_size - 2 * padding
-        )
-        pygame.draw.rect(self.screen, COL_AGENT, rect, border_radius=6)
+        pos = (ax * self.tile_size, ay * self.tile_size)
+
+        #Draw the frame
+        self.screen.blit(current_frame, pos)
+        self.agent_down_frames_tick += 1
     
     def _draw_apples(self, env: GridWorld):
         """Draw apples as red circles (only if not collected)"""

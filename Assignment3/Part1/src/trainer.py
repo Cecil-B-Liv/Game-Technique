@@ -3,11 +3,11 @@ Training loop for Q-Learning agent
 """
 
 import pygame
-import matplotlib
 from .environment import GridWorld
-from .agent import QLearningAgent
+from Part1.src.agents.qlearning_agent import QLearningAgent
 from .renderer import Renderer
 from .config import Config
+import matplotlib.pyplot as plt
 
 
 class Trainer:
@@ -21,7 +21,7 @@ class Trainer:
     - Pygame event handling
     """
     
-    def __init__(self, env:  GridWorld, agent: QLearningAgent, 
+    def __init__(self, env:  GridWorld, agent,
                  renderer: Renderer, config: Config, level: int = 0):
         """
         Initialize trainer.
@@ -77,19 +77,33 @@ class Trainer:
             # Handle Pygame events
             if not self._handle_events(episode):
                 break
-            
+
             # Select action
             action = self.agent.select_action(state)
-            
+
             # Take step in environment
             result = self.env.step(action)
-            
-            # Update Q-table
-            self.agent. update(state, action, result. reward, 
-                            result.next_state, result.done)
-            
+
+            # SARSA
+            if self.agent.__class__.__name__ == "SARSAAgent":
+                # SARSA: choose next action BEFORE update
+                next_action = self.agent.select_action(result.next_state)
+
+                self.agent.update(
+                    state, action, result.reward,
+                    result.next_state, next_action, result.done
+                )
+            # Q-learning
+            else:
+
+                self.agent.update(
+                    state, action, result.reward,
+                    result.next_state, result.done
+                )
+
             # Move to next state
             state = result.next_state
+
             total_reward += result.reward
             steps += 1
             
@@ -167,8 +181,7 @@ class Trainer:
                 self.renderer.tick(self.config.fps_fast)
 
     def _plot_learning_curve(self):
-        import matplotlib.pyplot as plt
-
+        algo_name = self.agent.__class__.__name__.replace("Agent", "")
         plt.figure(figsize=(8, 5))
         plt.plot(self.episode_returns, alpha=0.4, label="Episode Return")
 
@@ -188,7 +201,7 @@ class Trainer:
 
         plt.xlabel("Episode")
         plt.ylabel("Total Reward")
-        plt.title(f"Q-Learning Learning Curve (Level {self.level})")
+        plt.title(f"{algo_name} Learning Curve (Level {self.level})")
         plt.legend()
         plt.grid()
         plt.tight_layout()
