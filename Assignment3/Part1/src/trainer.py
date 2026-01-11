@@ -4,7 +4,7 @@ Training loop for Q-Learning agent
 
 import pygame
 from .environment import GridWorld
-from Part1.src.agents.qlearning_agent import QLearningAgent
+from Assignment3.Part1.src.agents.qlearning_agent import QLearningAgent
 from .renderer import Renderer
 from .config import Config
 import matplotlib.pyplot as plt

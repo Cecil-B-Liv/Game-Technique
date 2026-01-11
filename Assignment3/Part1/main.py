@@ -4,14 +4,14 @@ Main entry point for GridWorld Q-Learning
 
 import random
 
-from Part1.src.environment import GridWorld
-from Part1.src.agents.qlearning_agent import QLearningAgent
-from Part1.src.agents.sarsa_agent import SARSAAgent
-from Part1.src.renderer import Renderer
-from Part1.src.trainer import Trainer
-from Part1.src.config import Config
-from Part1.src.constants import LEVELS
-from Part1.src.config import load_config
+from Assignment3.Part1.src.environment import GridWorld
+from Assignment3.Part1.src.agents.qlearning_agent import QLearningAgent
+from Assignment3.Part1.src.agents.sarsa_agent import SARSAAgent
+from Assignment3.Part1.src.renderer import Renderer
+from Assignment3.Part1.src.trainer import Trainer
+from Assignment3.Part1.src.config import Config
+from Assignment3.Part1.src.constants import LEVELS
+from Assignment3.Part1.src.config import load_config
 
 
 
@@ -29,7 +29,7 @@ def main():
     level_layout = LEVELS[level_num]
 
     # Use Sarsa for testing only, change latter
-    USE_SARSA = True
+    USE_SARSA = False
     
     print(f"🎮 Starting GridWorld Q-Learning")
     print(f"📊 Level: {level_num}")
