@@ -46,6 +46,7 @@ class Renderer:
 
         # Still Assets
         self.menu_bg = None
+        self.apple_img = None
 
         # Animation
         self.agent_down_frames = []
@@ -69,13 +70,22 @@ class Renderer:
 
     def load_still_img(self):
         menu_bg_path = os.path.join(self.current_dir, "..", "sprites", "main_menu_bg.png")
+        apple_path = os.path.join(self.current_dir, "..", "sprites", "apple.png")
 
+        # Load menu img
         print("Load main menu img")
         if os.path.exists(menu_bg_path):
             img = pygame.image.load(menu_bg_path).convert()
             self.menu_bg = pygame.transform.scale(img, (self.width, self.height))
         else:
             print("Warning: main_menu_bg.png not found")
+
+        # Load apple img
+        if os.path.exists(apple_path):
+            img = pygame.image.load(apple_path).convert_alpha()
+            self.apple_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: apple.png not found")
 
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
@@ -195,10 +205,9 @@ class Renderer:
         for pos, idx in env.apple_index.items():
             # Check if apple is still available (bit is set)
             if (env.apple_mask >> idx) & 1:
-                cx = pos[0] * self.tile_size + self.tile_size // 2
-                cy = pos[1] * self.tile_size + self.tile_size // 2
-                radius = self.tile_size // 3
-                pygame.draw.circle(self.screen, COL_APPLE, (cx, cy), radius)
+                x = pos[0] * self.tile_size
+                y = pos[1] * self.tile_size
+                self.screen.blit(self.apple_img, (x, y))
     
     def _draw_rocks(self, env: GridWorld):
         """Draw rocks as gray squares"""
