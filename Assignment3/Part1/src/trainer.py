@@ -58,7 +58,6 @@ class Trainer:
             self._run_episode(episode)
         
         # Cleanup
-        self.renderer.quit()
         self._plot_learning_curve()
         print(f"✓ Training complete!  {self.config.episodes} episodes")
     

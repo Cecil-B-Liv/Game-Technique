@@ -39,6 +39,7 @@ class Renderer:
         pygame.display.set_caption("GridWorld - Q-Learning")
         self.clock = pygame. time.Clock()
         self.font = pygame.font.SysFont("consolas", 18)
+        self.big_font = pygame.font.SysFont("consolas", 36)
 
         # Path
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -278,22 +279,32 @@ class Renderer:
             text_surface = self.font.render(line, True, COL_TEXT)
             self.screen.blit(text_surface, (10, y_offset + i * 22))
 
-    def draw_menu(self):
-
+    def draw_menu(self, selected_agent, selected_level):
         # Background
         if self.menu_bg:
             self.screen.blit(self.menu_bg, (0, 0))
         else:
             self.screen.fill((10, 10, 10))
 
-        # Instructions
+        # Title
+        title = self.big_font.render("GridWorld RL", True, (255, 255, 255))
+        self.screen.blit(
+            title,
+            (self.width // 2 - title.get_width() // 2, 120)
+        )
+
+        # Menu info
         lines = [
+            f"Agent: {AGENTS[selected_agent]}   (↑ ↓)",
+            f"Level: {selected_level}   (← →)",
+            "",
             "Press ENTER to start",
             "Press ESC to quit"
         ]
 
         for i, text in enumerate(lines):
-            surface = self.font.render(text, True, (200, 200, 200))
+            color = (200, 200, 200)
+            surface = self.font.render(text, True, color)
             self.screen.blit(
                 surface,
                 (self.width // 2 - surface.get_width() // 2, 220 + i * 30)

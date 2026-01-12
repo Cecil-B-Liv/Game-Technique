@@ -122,3 +122,6 @@ LEVELS = {
     4: LEVEL4,
     5: LEVEL5,
 }
+
+AGENTS = ["Q-Learning", "SARSA"]
+MAX_LEVEL = len(LEVELS) - 1
