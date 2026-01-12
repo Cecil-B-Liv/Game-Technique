@@ -42,8 +42,9 @@ class Renderer:
 
         # Path
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        self.agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
-        self.fire_frames_path = os.path.join(self.current_dir, "..", "sprites", "fire")
+
+        # Still Assets
+        self.menu_bg = None
 
         # Animation
         self.agent_down_frames = []
@@ -53,11 +54,34 @@ class Renderer:
         self.fire_frames_tick = 0
 
         # Load assets automatically
+        self.load_assets()
+
+
+
+    def load_assets(self):
+        print("Load still img")
+        self.load_still_img()
+
+        print("Load animation")
         self.load_animation()
 
+
+    def load_still_img(self):
+        menu_bg_path = os.path.join(self.current_dir, "..", "sprites", "main_menu_bg.png")
+
+        print("Load main menu img")
+        if os.path.exists(menu_bg_path):
+            img = pygame.image.load(menu_bg_path).convert()
+            self.menu_bg = pygame.transform.scale(img, (self.width, self.height))
+        else:
+            print("Warning: main_menu_bg.png not found")
+
     def load_animation(self):
-        self.agent_load_animation(self.agent_down_frames_path)
-        self.fire_load_animation(self.fire_frames_path)
+        agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
+        fire_frames_path = os.path.join(self.current_dir, "..", "sprites", "fire")
+
+        self.agent_load_animation(agent_down_frames_path)
+        self.fire_load_animation(fire_frames_path)
 
     def fire_load_animation(self, folder_path: str):
         """
@@ -253,7 +277,30 @@ class Renderer:
         for i, line in enumerate(hud_lines):
             text_surface = self.font.render(line, True, COL_TEXT)
             self.screen.blit(text_surface, (10, y_offset + i * 22))
-    
+
+    def draw_menu(self):
+
+        # Background
+        if self.menu_bg:
+            self.screen.blit(self.menu_bg, (0, 0))
+        else:
+            self.screen.fill((10, 10, 10))
+
+        # Instructions
+        lines = [
+            "Press ENTER to start",
+            "Press ESC to quit"
+        ]
+
+        for i, text in enumerate(lines):
+            surface = self.font.render(text, True, (200, 200, 200))
+            self.screen.blit(
+                surface,
+                (self.width // 2 - surface.get_width() // 2, 220 + i * 30)
+            )
+
+        pygame.display.flip()
+
     def tick(self, fps: int):
         """Control frame rate"""
         self.clock.tick(fps)

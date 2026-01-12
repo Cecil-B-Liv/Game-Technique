@@ -4,6 +4,8 @@ Main entry point for GridWorld Q-Learning
 
 import random
 
+import pygame
+
 from Assignment3.Part1.src.environment import GridWorld
 from Assignment3.Part1.src.agents.qlearning_agent import QLearningAgent
 from Assignment3.Part1.src.agents.sarsa_agent import SARSAAgent
@@ -75,11 +77,21 @@ def main():
     # Create trainer
     trainer = Trainer(env, agent, renderer, config, level=level_num)
 
-    # while trainer.running:
+    while trainer.running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                trainer.running = False
 
-    # Start training
-    print("▶ Training started. Press V to toggle speed, R to reset, ESC to quit.")
-    trainer.train()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    # Start training
+                    print("▶ Training started. Press V to toggle speed, R to reset, ESC to quit.")
+                    trainer.train()
+
+                if event.key == pygame.K_ESCAPE:
+                    trainer.running = False
+
+        renderer.draw_menu()
     
     print("👋 Goodbye!")
 
