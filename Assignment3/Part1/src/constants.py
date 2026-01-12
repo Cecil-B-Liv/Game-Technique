@@ -33,6 +33,7 @@ COL_TEXT = (240, 240, 240)
 # Grid dimensions
 WIDTH_TILES = 12
 HEIGHT_TILES = 8
+HUD_HEIGHT = 50
 
 # Level layouts
 LEVEL0 = [

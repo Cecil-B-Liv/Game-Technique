@@ -74,7 +74,9 @@ def main():
     
     # Create trainer
     trainer = Trainer(env, agent, renderer, config, level=level_num)
-    
+
+    # while trainer.running:
+
     # Start training
     print("▶ Training started. Press V to toggle speed, R to reset, ESC to quit.")
     trainer.train()

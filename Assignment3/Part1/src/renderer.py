@@ -27,8 +27,11 @@ class Renderer:
             tile_size: Size of each tile in pixels
         """
         self.tile_size = tile_size
-        self.width = WIDTH_TILES * tile_size
-        self. height = HEIGHT_TILES * tile_size
+        self.grid_width = WIDTH_TILES * tile_size
+        self.grid_height = HEIGHT_TILES * tile_size
+
+        self.height = self.grid_height + HUD_HEIGHT
+        self.width = self.grid_width
         
         # Initialize Pygame
         pygame.init()
@@ -246,7 +249,7 @@ class Renderer:
             "Controls:  V=toggle speed | R=reset | ESC=quit"
         ]
         
-        y_offset = 8
+        y_offset = self.grid_height + 8
         for i, line in enumerate(hud_lines):
             text_surface = self.font.render(line, True, COL_TEXT)
             self.screen.blit(text_surface, (10, y_offset + i * 22))
