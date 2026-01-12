@@ -47,6 +47,8 @@ class Renderer:
         # Still Assets
         self.menu_bg = None
         self.apple_img = None
+        self.chest_close_img = None
+        self.chest_open_img = None
 
         # Animation
         self.agent_down_frames = []
@@ -74,6 +76,8 @@ class Renderer:
     def load_still_img(self):
         menu_bg_path = os.path.join(self.current_dir, "..", "sprites", "main_menu_bg.png")
         apple_path = os.path.join(self.current_dir, "..", "sprites", "apple.png")
+        chest_close_path = os.path.join(self.current_dir, "..", "sprites", "chest_close.png")
+        chest_open_path = os.path.join(self.current_dir, "..", "sprites", "chest_close.png")
 
         # Load menu img
         print("Load main menu img")
@@ -89,6 +93,20 @@ class Renderer:
             self.apple_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
         else:
             print("Warning: apple.png not found")
+
+        # Load chest close
+        if os.path.exists(chest_close_path):
+            img = pygame.image.load(chest_close_path).convert_alpha()
+            self.chest_close_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: chest_close.png not found")
+
+        # Load chest open
+        if os.path.exists(chest_open_path):
+            img = pygame.image.load(chest_open_path).convert_alpha()
+            self.chest_open_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: chest_open.png not found")
 
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
@@ -116,7 +134,7 @@ class Renderer:
             img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
             self.monster_frames.append(img)
 
-        print(f"Loaded {len(self.monster_frames)} frames for agent animation.")
+        print(f"Loaded {len(self.monster_frames)} frames for monster animation.")
     def fire_load_animation(self, folder_path: str):
         """
         Load fire animation
@@ -270,6 +288,7 @@ class Renderer:
     
     def _draw_chests(self, env: GridWorld):
         """Draw chests as brown rectangles"""
+        # TODO: Draw the corresponding img after implement
         for pos in env.chests:
             opened = pos in env.opened_chests
             color = (100, 50, 20) if opened else COL_CHEST
