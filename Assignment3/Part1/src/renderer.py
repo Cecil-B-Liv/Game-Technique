@@ -55,6 +55,9 @@ class Renderer:
         self.fire_frames = []
         self.fire_frames_tick = 0
 
+        self.monster_frames = []
+        self.monster_frames_tick = 0
+
         # Load assets automatically
         self.load_assets()
 
@@ -90,10 +93,30 @@ class Renderer:
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
         fire_frames_path = os.path.join(self.current_dir, "..", "sprites", "fire")
+        monster_frames_path = os.path.join(self.current_dir, "..", "sprites", "monster")
 
         self.agent_load_animation(agent_down_frames_path)
         self.fire_load_animation(fire_frames_path)
+        self.monster_animation_load(monster_frames_path)
 
+    def monster_animation_load(self, folder_path: str):
+        """
+        Load monster animation
+        """
+        if not os.path.exists(folder_path):
+            print(f"Error: Folder {folder_path} not found.")
+            return
+
+            # Get all image files and sort them to ensure correct order
+        files = sorted([f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))])
+
+        for filename in files:
+            img_path = os.path.join(folder_path, filename)
+            img = pygame.image.load(img_path).convert_alpha()
+            img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+            self.monster_frames.append(img)
+
+        print(f"Loaded {len(self.monster_frames)} frames for agent animation.")
     def fire_load_animation(self, folder_path: str):
         """
         Load fire animation
@@ -261,18 +284,17 @@ class Renderer:
     
     def _draw_monsters(self, env: GridWorld):
         """Draw monsters as purple diamonds"""
-        for pos in env. current_monsters:
-            cx = pos[0] * self.tile_size + self.tile_size // 2
-            cy = pos[1] * self.tile_size + self.tile_size // 2
-            size = self.tile_size // 3
-            
-            points = [
-                (cx, cy - size),
-                (cx + size, cy),
-                (cx, cy + size),
-                (cx - size, cy)
-            ]
-            pygame. draw.polygon(self.screen, COL_MONSTER, points)
+
+        animation_cooldown = len(self.monster_frames) * 2
+        frame_index = (self.monster_frames_tick // animation_cooldown) % len(self.monster_frames)
+        current_frame = self.monster_frames[frame_index]
+
+        for pos in env.current_monsters:
+            x = pos[0] * self.tile_size
+            y = pos[1] * self.tile_size
+            self.screen.blit(current_frame, (x, y))
+
+        self.monster_frames_tick += 1
     
     def _draw_hud(self, episode: int, step: int, epsilon: float,
                   total_reward: float, apples_left: int, level: int):
