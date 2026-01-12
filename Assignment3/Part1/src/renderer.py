@@ -88,6 +88,7 @@ class Renderer:
             print("Warning: main_menu_bg.png not found")
 
         # Load apple img
+        print("Load apple img")
         if os.path.exists(apple_path):
             img = pygame.image.load(apple_path).convert_alpha()
             self.apple_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
@@ -95,6 +96,7 @@ class Renderer:
             print("Warning: apple.png not found")
 
         # Load chest close
+        print("Load close chest img")
         if os.path.exists(chest_close_path):
             img = pygame.image.load(chest_close_path).convert_alpha()
             self.chest_close_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
@@ -102,6 +104,7 @@ class Renderer:
             print("Warning: chest_close.png not found")
 
         # Load chest open
+        print("Load close chest img")
         if os.path.exists(chest_open_path):
             img = pygame.image.load(chest_open_path).convert_alpha()
             self.chest_open_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
