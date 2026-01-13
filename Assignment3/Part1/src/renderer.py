@@ -48,6 +48,7 @@ class Renderer:
         self.apple_img = None
         self.chest_close_img = None
         self.chest_open_img = None
+        self.key_img = None
 
         # Animation
         self.agent_down_frames = []
@@ -73,10 +74,12 @@ class Renderer:
 
 
     def load_still_img(self):
-        menu_bg_path = os.path.join(self.current_dir, "..", "sprites", "main_menu_bg.png")
-        apple_path = os.path.join(self.current_dir, "..", "sprites", "apple.png")
-        chest_close_path = os.path.join(self.current_dir, "..", "sprites", "chest_close.png")
-        chest_open_path = os.path.join(self.current_dir, "..", "sprites", "chest_open.png")
+        sprite_path = os.path.join(self.current_dir, "..", "sprites")
+        menu_bg_path = os.path.join(sprite_path, "main_menu_bg.png")
+        apple_path = os.path.join(sprite_path, "apple.png")
+        chest_close_path = os.path.join(sprite_path, "chest_close.png")
+        chest_open_path = os.path.join(sprite_path, "chest_open.png")
+        key_path = os.path.join(sprite_path, "key.png")
 
         # Load menu img
         print("Load main menu img")
@@ -109,6 +112,14 @@ class Renderer:
             self.chest_open_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
         else:
             print("Warning: chest_open.png not found")
+
+        # Load key
+        print("Load key img")
+        if os.path.exists(key_path):
+            img = pygame.image.load(key_path).convert_alpha()
+            self.key_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: key.png not found")
 
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
@@ -288,14 +299,12 @@ class Renderer:
         for pos in env.keys:
             # Only draw if this key hasn't been collected yet
             if pos not in env.collected_keys_positions:
-                cx = pos[0] * self.tile_size + self.tile_size // 2
-                cy = pos[1] * self.tile_size + self.tile_size // 2
-                radius = self.tile_size // 4
-                pygame.draw.circle(self.screen, COL_KEY, (cx, cy), radius)
+                x = pos[0] * self.tile_size
+                y = pos[1] * self.tile_size
+                self.screen.blit(self.key_img, (x,y))
     
     def _draw_chests(self, env: GridWorld):
         """Draw chests as brown rectangles"""
-        # TODO: Draw the corresponding img after implement
         for pos in env.chests:
             idx = env.chest_index[pos]
 
