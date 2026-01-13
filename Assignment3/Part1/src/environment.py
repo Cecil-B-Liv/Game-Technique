@@ -11,7 +11,7 @@ from .constants import ACTIONS
 @dataclass
 class StepResult:
     """Result of taking a step in the environment"""
-    next_state: Tuple[int, int, int]  # (agent_x, agent_y, apple_mask)
+    next_state: Tuple[int, int, int, int, int]  # (agent_x, agent_y, apple_mask, collected_key, chest_mask)
     reward: float
     done: bool
     info: dict
@@ -56,10 +56,15 @@ class GridWorld:
         self.rocks:  Set[Tuple[int, int]] = set()
         self.fires: Set[Tuple[int, int]] = set()
         self.keys: Set[Tuple[int, int]] = set()
-        self.chests: Set[Tuple[int, int]] = set()
+
+        self.chests: List[Tuple[int, int]] = []
+        self.chest_index: Dict[Tuple[int, int], int] = {}
+
         self.apples: List[Tuple[int, int]] = []
         self.apple_index:  Dict[Tuple[int, int], int] = {}
+
         self.monsters: List[Tuple[int, int]] = []
+
         self. start = (0, 0)
         
         # Parse layout
@@ -86,11 +91,12 @@ class GridWorld:
                 elif ch == "K":
                     self.keys.add(pos)
                 elif ch == "C": 
-                    self.chests.add(pos)
+                    self.chest_index[pos] = len(self.chests)
+                    self.chests.append(pos)
                 elif ch == "M":
-                    self. monsters.append(pos)
+                    self.monsters.append(pos)
     
-    def reset(self) -> Tuple[int, int, int]: 
+    def reset(self) -> Tuple[int, int, int, int, int]:
         """
         Reset environment to initial state.
         
@@ -98,9 +104,15 @@ class GridWorld:
             Initial state tuple (x, y, apple_mask)
         """
         self.agent = self.start
-        self.collected_keys = 0
-        self.opened_chests:  Set[Tuple[int, int]] = set()
         self.alive = True
+
+        # Use a set to hold the key collected positions
+        self.collected_keys_positions: Set[Tuple[int, int]] = set()
+        self.collected_keys = 0
+
+        self.chest_mask = 0
+        for i in range(len(self.chests)):
+            self.chest_mask |= (1<<i)
         
         # Build apple bitmask (bit i = 1 if apple i is available)
         self.apple_mask = 0
@@ -113,7 +125,7 @@ class GridWorld:
         self.step_count = 0
         return self.encode_state()
     
-    def encode_state(self) -> Tuple[int, int, int]: 
+    def encode_state(self) -> Tuple[int, int, int, int, int]:
         """
         Encode current state as a tuple. 
         
@@ -121,9 +133,11 @@ class GridWorld:
         For later levels, you may want to extend this.
         
         Returns:
-            State tuple (agent_x, agent_y, apple_mask)
+            State tuple (agent_x, agent_y, apple_mask, collected_key, chest_mask)
         """
-        return (self.agent[0], self.agent[1], self.apple_mask)
+        # Count how many keys we're currently holding
+
+        return self.agent[0], self.agent[1], self.apple_mask, self.collected_keys, self.chest_mask
     
     def in_bounds(self, pos:  Tuple[int, int]) -> bool:
         """Check if position is within grid bounds"""
@@ -197,15 +211,18 @@ class GridWorld:
                 info["event"] = "apple"
         
         # 4) Check for key collection
-        if self.agent in self.keys:
-            self.keys.remove(self.agent)
+        if self.agent in self.keys and self.agent not in self.collected_keys_positions:
+            self.collected_keys_positions.add(self.agent)
             self.collected_keys += 1
             info["event"] = "key"
         
         # 5) Check for chest opening
-        if self.agent in self.chests and self.agent not in self.opened_chests:
-            if self.collected_keys > 0:
-                self.opened_chests.add(self. agent)
+        if self.agent in self.chests and self.collected_keys > 0:
+            idx = self.chest_index[self.agent]
+            # Check if the chest have opened or not
+            if (self.chest_mask >> idx) & 1:
+                # Clear the bit (open the chest)
+                self.chest_mask &= ~(1 << idx)
                 self.collected_keys -= 1
                 reward += 2.0
                 info["event"] = "chest"
@@ -220,7 +237,7 @@ class GridWorld:
             return StepResult(self.encode_state(), reward, True, info)
         
         # 7) Check win condition (all apples collected)
-        if self.apple_mask == 0:
+        if self.apple_mask == 0 and self.chest_mask == 0:
             done = True
             info["event"] = "win"
         
@@ -259,3 +276,7 @@ class GridWorld:
     def get_apples_remaining(self) -> int:
         """Count how many apples are still available"""
         return bin(self.apple_mask).count('1')
+
+    def get_chests_remaining(self) -> int:
+        """Count how many chests are still not opened"""
+        return bin(self.chest_mask).count('1')

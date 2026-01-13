@@ -91,11 +91,11 @@ def main():
                             epsilon_decay_episodes=config.epsilon_decay_episodes
                         )
 
-                    print(f"🎮 Starting GridWorld {AGENTS[selected_agent]}")
-                    print(f"📊 Level: {selected_level}")
-                    print(f"🔢 Episodes: {config.episodes}")
-                    print(f"📈 Alpha: {config.alpha}, Gamma: {config.gamma}")
-                    print(f"🎲 Epsilon: {config.epsilon_start} → {config.epsilon_end}")
+                    print(f"Starting GridWorld {AGENTS[selected_agent]}")
+                    print(f"Level: {selected_level}")
+                    print(f"Episodes: {config.episodes}")
+                    print(f"Alpha: {config.alpha}, Gamma: {config.gamma}")
+                    print(f"Epsilon: {config.epsilon_start} → {config.epsilon_end}")
                     print()
 
                     # Create environment
@@ -104,7 +104,7 @@ def main():
                     # Create trainer
                     trainer = Trainer(env, agent, renderer, config, level=selected_level)
 
-                    print("▶ Training started. Press V to toggle speed, R to reset, ESC to quit.")
+                    print("Training started. Press V to toggle speed, R to reset, ESC to quit.")
                     trainer.train()
 
                 if event.key == pygame.K_ESCAPE:
@@ -112,7 +112,7 @@ def main():
 
         renderer.draw_menu(selected_agent, selected_level)
     
-    print("👋 Goodbye!")
+    print("End Game")
     renderer.quit()
 
 

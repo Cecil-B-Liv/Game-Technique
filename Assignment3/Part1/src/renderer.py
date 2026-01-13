@@ -4,7 +4,6 @@ Pygame renderer for GridWorld visualization
 import os
 
 import pygame
-from typing import Optional
 from .environment import GridWorld
 from .constants import *
 
@@ -49,6 +48,7 @@ class Renderer:
         self.apple_img = None
         self.chest_close_img = None
         self.chest_open_img = None
+        self.key_img = None
 
         # Animation
         self.agent_down_frames = []
@@ -74,10 +74,12 @@ class Renderer:
 
 
     def load_still_img(self):
-        menu_bg_path = os.path.join(self.current_dir, "..", "sprites", "main_menu_bg.png")
-        apple_path = os.path.join(self.current_dir, "..", "sprites", "apple.png")
-        chest_close_path = os.path.join(self.current_dir, "..", "sprites", "chest_close.png")
-        chest_open_path = os.path.join(self.current_dir, "..", "sprites", "chest_close.png")
+        sprite_path = os.path.join(self.current_dir, "..", "sprites")
+        menu_bg_path = os.path.join(sprite_path, "main_menu_bg.png")
+        apple_path = os.path.join(sprite_path, "apple.png")
+        chest_close_path = os.path.join(sprite_path, "chest_close.png")
+        chest_open_path = os.path.join(sprite_path, "chest_open.png")
+        key_path = os.path.join(sprite_path, "key.png")
 
         # Load menu img
         print("Load main menu img")
@@ -110,6 +112,14 @@ class Renderer:
             self.chest_open_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
         else:
             print("Warning: chest_open.png not found")
+
+        # Load key
+        print("Load key img")
+        if os.path.exists(key_path):
+            img = pygame.image.load(key_path).convert_alpha()
+            self.key_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: key.png not found")
 
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
@@ -213,7 +223,10 @@ class Renderer:
         
         # Draw HUD
         self._draw_hud(episode, step, epsilon, total_reward, 
-                       env.get_apples_remaining(), level)
+                       env.get_apples_remaining(), level,
+                       env.collected_keys,
+                       chests_left=env.get_chests_remaining()
+                       )
         
         # Update display
         pygame.display.flip()
@@ -284,25 +297,28 @@ class Renderer:
     def _draw_keys(self, env: GridWorld):
         """Draw keys as yellow circles"""
         for pos in env.keys:
-            cx = pos[0] * self.tile_size + self.tile_size // 2
-            cy = pos[1] * self.tile_size + self.tile_size // 2
-            radius = self. tile_size // 4
-            pygame.draw.circle(self.screen, COL_KEY, (cx, cy), radius)
+            # Only draw if this key hasn't been collected yet
+            if pos not in env.collected_keys_positions:
+                x = pos[0] * self.tile_size
+                y = pos[1] * self.tile_size
+                self.screen.blit(self.key_img, (x,y))
     
     def _draw_chests(self, env: GridWorld):
         """Draw chests as brown rectangles"""
-        # TODO: Draw the corresponding img after implement
         for pos in env.chests:
-            opened = pos in env.opened_chests
-            color = (100, 50, 20) if opened else COL_CHEST
-            
-            rect = pygame.Rect(
-                pos[0] * self.tile_size + 8,
-                pos[1] * self.tile_size + 8,
-                self.tile_size - 16,
-                self. tile_size - 16
-            )
-            pygame.draw.rect(self.screen, color, rect)
+            idx = env.chest_index[pos]
+
+            # Check if chest is still closed (bit is set in chest_mask)
+            is_closed = (env.chest_mask >> idx) & 1
+
+            x = pos[0] * self.tile_size
+            y = pos[1] * self.tile_size
+
+            # Draw appropriate image if available
+            if is_closed and self.chest_close_img:
+                self.screen.blit(self.chest_close_img, (x, y))
+            elif not is_closed and self.chest_open_img:
+                self.screen.blit(self.chest_open_img, (x, y))
     
     def _draw_monsters(self, env: GridWorld):
         """Draw monsters as purple diamonds"""
@@ -317,16 +333,17 @@ class Renderer:
             self.screen.blit(current_frame, (x, y))
 
         self.monster_frames_tick += 1
-    
+
     def _draw_hud(self, episode: int, step: int, epsilon: float,
-                  total_reward: float, apples_left: int, level: int):
+                  total_reward: float, apples_left: int, level: int,
+                  keys_held: int = 0, chests_left: int = 0):
         """Draw heads-up display with stats"""
         hud_lines = [
             f"Level {level} | Ep {episode + 1} | Step {step} | ε={epsilon:.3f}",
-            f"Apples: {apples_left} | Return: {total_reward:.2f}",
-            "Controls:  V=toggle speed | R=reset | ESC=quit"
+            f"Apples: {apples_left} | Keys: {keys_held} | Chests: {chests_left} | Return: {total_reward:.2f}",
+            "Controls: V=toggle speed | R=reset | ESC=quit"
         ]
-        
+
         y_offset = self.grid_height + 8
         for i, line in enumerate(hud_lines):
             text_surface = self.font.render(line, True, COL_TEXT)
