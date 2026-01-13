@@ -22,7 +22,7 @@ class Trainer:
     """
     
     def __init__(self, env:  GridWorld, agent,
-                 renderer: Renderer, config: Config, level: int = 0):
+                 renderer: Renderer, config: Config, level: int = 0, agent_name: str = "Unknown"):
         """
         Initialize trainer.
         
@@ -38,6 +38,7 @@ class Trainer:
         self.renderer = renderer
         self.config = config
         self.level = level
+        self.agent_name = agent_name
         
         self.visualize = True  # Start in visual mode
         self.running = True
@@ -168,7 +169,8 @@ class Trainer:
             steps,
             self.agent.epsilon,
             total_reward,
-            self.level
+            self.level,
+            agent_name=self.agent_name
         )
         
         # Control frame rate

@@ -188,7 +188,8 @@ class Renderer:
         print(f"Loaded {len(self.agent_down_frames)} frames for agent animation.")
 
     def draw(self, env: GridWorld, episode: int, step: int, 
-             epsilon: float, total_reward: float, level: int = 0):
+             epsilon: float, total_reward: float, level: int = 0,
+             agent_name: str = "Unknown"):
         """
         Draw the current state of the environment.
         
@@ -225,7 +226,8 @@ class Renderer:
         self._draw_hud(episode, step, epsilon, total_reward, 
                        env.get_apples_remaining(), level,
                        env.collected_keys,
-                       chests_left=env.get_chests_remaining()
+                       chests_left=env.get_chests_remaining(),
+                       agent_name=agent_name
                        )
         
         # Update display
@@ -336,10 +338,11 @@ class Renderer:
 
     def _draw_hud(self, episode: int, step: int, epsilon: float,
                   total_reward: float, apples_left: int, level: int,
-                  keys_held: int = 0, chests_left: int = 0):
+                  keys_held: int = 0, chests_left: int = 0,
+                  agent_name: str = "Unknow"):
         """Draw heads-up display with stats"""
         hud_lines = [
-            f"Level {level} | Ep {episode + 1} | Step {step} | ε={epsilon:.3f}",
+            f"Agent: {agent_name} | Level {level} | Ep {episode + 1} | Step {step} | ε={epsilon:.3f}",
             f"Apples: {apples_left} | Keys: {keys_held} | Chests: {chests_left} | Return: {total_reward:.2f}",
             "Controls: V=toggle speed | R=reset | ESC=quit"
         ]
