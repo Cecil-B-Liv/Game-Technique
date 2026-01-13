@@ -59,11 +59,11 @@ LEVEL1 = [
 ]
 
 LEVEL2 = [
-    "S     R   C ",
+    "S     R   K ",
+    "      R     ",
+    "  C   R   A ",
     "      R     ",
     "  A   R   A ",
-    "      R     ",
-    "  K   R   A ",
     "      R     ",
     "            ",
     "            "
@@ -71,12 +71,12 @@ LEVEL2 = [
 
 LEVEL3 = [
     "S   R     C ",
-    "    R       ",
+    "    R K     ",
     "A   RRRR  A ",
-    "    R       ",
-    "K   R     A ",
-    "    R       ",
-    "    R     C ",
+    "    R K     ",
+    "   CR     A ",
+    "   RR       ",
+    "            ",
     "            "
 ]
 
