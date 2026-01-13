@@ -61,11 +61,11 @@ LEVEL1 = [
 LEVEL2 = [
     "S     R   K ",
     "      R     ",
-    "  C   R   A ",
+    "  CF  R   A ",
     "      R     ",
     "  A   R   A ",
     "      R     ",
-    "            ",
+    "     F      ",
     "            "
 ]
 

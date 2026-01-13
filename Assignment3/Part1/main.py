@@ -19,30 +19,13 @@ from Assignment3.Part1.src.config import load_config
 
 def main():
     """Main function"""
-    # Load configuration
-    config_dict = load_config("config_level0.json")
-    config = Config(config_dict)
-    
-    # Set random seed
-    random.seed(config.seed)
-
     running = True
     # User choice
     selected_agent = 0
     selected_level = 0
 
-    
-    # # Create agent
-    # agent = QLearningAgent(
-    #     alpha=config.alpha,
-    #     gamma=config.gamma,
-    #     epsilon_start=config.epsilon_start,
-    #     epsilon_end=config.epsilon_end,
-    #     epsilon_decay_episodes=config.epsilon_decay_episodes
-    # )
-
     # Create renderer
-    renderer = Renderer(tile_size=config.tile_size)
+    renderer = Renderer(tile_size=48)
 
     while running:
         for event in pygame.event.get():
@@ -70,6 +53,14 @@ def main():
                     print(f"Level: {selected_level}")
 
                 if event.key == pygame.K_RETURN:
+                    # Load config for selected level
+                    config_file = f"config_level{selected_level}.json"
+                    config_dict = load_config(config_file)
+                    config = Config(config_dict)
+
+                    # Set random seed
+                    random.seed(config.seed)
+
                     # Create level layout
                     level_layout = LEVELS[selected_level]
 
