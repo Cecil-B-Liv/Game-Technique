@@ -82,7 +82,6 @@ def train_directional_ppo():
     print("=" * 60 + "\n")
     
     model.learn(
-        callback=callbacks,
         total_timesteps=1_000_000,
         callback=eval_callback,
         progress_bar=True
