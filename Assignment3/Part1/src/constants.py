@@ -102,6 +102,17 @@ LEVEL5 = [
     "  M         "
 ]
 
+LEVEL6 = [
+    "S           ",
+    "            ",
+    "    R       ",
+    "  A   R   A ",
+    "    R       ",
+    "            ",
+    "  M     M   ",
+    "    A   A   "
+]
+
 # Normalize all levels to proper width
 def normalize_level(level, width=WIDTH_TILES):
     """Ensure all rows have the same width"""
@@ -113,6 +124,7 @@ LEVEL2 = normalize_level(LEVEL2)
 LEVEL3 = normalize_level(LEVEL3)
 LEVEL4 = normalize_level(LEVEL4)
 LEVEL5 = normalize_level(LEVEL5)
+LEVEL6 = normalize_level(LEVEL6)
 
 LEVELS = {
     0: LEVEL0,
@@ -121,6 +133,7 @@ LEVELS = {
     3: LEVEL3,
     4: LEVEL4,
     5: LEVEL5,
+    6: LEVEL6,
 }
 
 AGENTS = ["Q-Learning", "SARSA"]
