@@ -38,7 +38,7 @@ class Arena:
             render_mode: If True, create a Pygame window for visualization. 
                         Set to False during training for speed.
         """
-        self. render_mode = render_mode
+        self.render_mode = render_mode
 
         # Only initialize Pygame graphics if rendering
         if render_mode:
@@ -67,7 +67,7 @@ class Arena:
         Called at the start of each episode.
         Returns the initial observation.
         """
-        # Create player at center of screen
+        # Create player at center of screen (Player code in entities.py)
         self.player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
         # Clear all entities
@@ -247,7 +247,7 @@ class Arena:
 
         # Apply the selected action
         if action == 1:    # Thrust forward
-            self. player.thrust()
+            self.player.thrust()
         elif action == 2:  # Rotate left
             self.player.rotate(1)
         elif action == 3:  # Rotate right
@@ -333,8 +333,8 @@ class Arena:
             if spawner.update():  # Returns True if should spawn
                 # Spawn enemy at random position near spawner
                 angle = random.uniform(0, 2 * math.pi)
-                ex = spawner.x + math. cos(angle) * (spawner.size + 20)
-                ey = spawner. y + math.sin(angle) * (spawner.size + 20)
+                ex = spawner.x + math.cos(angle) * (spawner.size + 20)
+                ey = spawner.y + math.sin(angle) * (spawner.size + 20)
                 self.enemies.append(Enemy(ex, ey, spawner.spawner_id))
                 spawner.active_enemies += 1
 
@@ -385,9 +385,9 @@ class Arena:
 
             # Check collision with enemies
             # [: ] creates a copy to iterate safely
-            for enemy in self. enemies[:]:
+            for enemy in self.enemies[:]:
                 if projectile.collides_with(enemy):
-                    if enemy. take_damage(PROJECTILE_DAMAGE):
+                    if enemy.take_damage(PROJECTILE_DAMAGE):
                         # Enemy killed!
                         self.enemies.remove(enemy)
                         enemies_killed += 1
@@ -400,7 +400,7 @@ class Arena:
                                 spawner.active_enemies -= 1
                                 break
 
-                    projectiles_to_remove. append(projectile)
+                    projectiles_to_remove.append(projectile)
                     break  # Projectile can only hit one thing
 
             # Check collision with spawners

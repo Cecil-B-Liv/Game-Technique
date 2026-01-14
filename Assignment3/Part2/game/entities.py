@@ -42,7 +42,7 @@ class Player:
             x: Starting x position (usually center of screen)
             y: Starting y position (usually center of screen)
         """
-        self. x = x                          # Current x position
+        self.x = x                          # Current x position
         self.y = y                          # Current y position
         self.vx = 0.0                        # Velocity in x direction
         self.vy = 0.0                        # Velocity in y direction
@@ -266,7 +266,7 @@ class Enemy:
                        (used to track spawner's active enemy count)
         """
         self.x = x
-        self. y = y
+        self.y = y
         self.health = ENEMY_HEALTH
         self.size = ENEMY_SIZE
         self.spawner_id = spawner_id
@@ -385,7 +385,7 @@ class Spawner:
         # Create rectangle (x, y is center, so offset by size)
         rect = pygame.Rect(
             self.x - self.size, 
-            self.y - self. size, 
+            self.y - self.size, 
             self.size * 2, 
             self.size * 2
         )
@@ -442,7 +442,7 @@ class Projectile:
         Projectiles move in a straight line at constant speed.
         """
         self.x += self.vx
-        self.y += self. vy
+        self.y += self.vy
         
         # Check if outside screen (should be removed)
         return (self.x < 0 or self.x > SCREEN_WIDTH or 
