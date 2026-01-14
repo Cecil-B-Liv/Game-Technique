@@ -10,18 +10,18 @@ from .constants import *
 
 class Renderer:
     """
-    Renders GridWorld using Pygame. 
-    
+    Renders GridWorld using Pygame.
+
     Features:
     - Grid visualization
     - Agent, apples, rocks, fire, monsters
     - HUD with episode info
     """
-    
+
     def __init__(self, tile_size: int = 48):
         """
         Initialize Pygame renderer.
-        
+
         Args:
             tile_size: Size of each tile in pixels
         """
@@ -31,7 +31,7 @@ class Renderer:
 
         self.height = self.grid_height + HUD_HEIGHT
         self.width = self.grid_width
-        
+
         # Initialize Pygame
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
@@ -187,12 +187,12 @@ class Renderer:
 
         print(f"Loaded {len(self.agent_down_frames)} frames for agent animation.")
 
-    def draw(self, env: GridWorld, episode: int, step: int, 
+    def draw(self, env: GridWorld, episode: int, step: int,
              epsilon: float, total_reward: float, level: int = 0,
              agent_name: str = "Unknown"):
         """
         Draw the current state of the environment.
-        
+
         Args:
             env: GridWorld environment
             episode: Current episode number
@@ -203,48 +203,48 @@ class Renderer:
         """
         # Background
         self.screen.fill(COL_BG)
-        
+
         # Draw grid lines
         self._draw_grid(env)
-        
+
         # Draw static objects
         self._draw_rocks(env)
         self._draw_fires(env)
         self._draw_keys(env)
         self._draw_chests(env)
-        
+
         # Draw collectibles
         self._draw_apples(env)
-        
+
         # Draw monsters
         self._draw_monsters(env)
-        
+
         # Draw agent
         self._draw_agent(env)
-        
+
         # Draw HUD
-        self._draw_hud(episode, step, epsilon, total_reward, 
+        self._draw_hud(episode, step, epsilon, total_reward,
                        env.get_apples_remaining(), level,
                        env.collected_keys,
                        chests_left=env.get_chests_remaining(),
                        agent_name=agent_name
                        )
-        
+
         # Update display
         pygame.display.flip()
-    
+
     def _draw_grid(self, env: GridWorld):
         """Draw grid lines"""
         for x in range(env.w):
             for y in range(env.h):
                 rect = pygame.Rect(
-                    x * self.tile_size, 
+                    x * self.tile_size,
                     y * self.tile_size,
-                    self.tile_size, 
+                    self.tile_size,
                     self.tile_size
                 )
                 pygame.draw.rect(self.screen, COL_GRID, rect, 1)
-    
+
     def _draw_agent(self, env: GridWorld):
         """Draw the agent as a green square"""
         animation_cooldown = len(self.agent_down_frames) * 2
@@ -258,7 +258,7 @@ class Renderer:
         #Draw the frame
         self.screen.blit(current_frame, pos)
         self.agent_down_frames_tick += 1
-    
+
     def _draw_apples(self, env: GridWorld):
         """Draw apples as red circles (only if not collected)"""
         for pos, idx in env.apple_index.items():
@@ -267,7 +267,7 @@ class Renderer:
                 x = pos[0] * self.tile_size
                 y = pos[1] * self.tile_size
                 self.screen.blit(self.apple_img, (x, y))
-    
+
     def _draw_rocks(self, env: GridWorld):
         """Draw rocks as gray squares"""
         for pos in env.rocks:
@@ -278,7 +278,7 @@ class Renderer:
                 self. tile_size - 8
             )
             pygame.draw.rect(self.screen, COL_ROCK, rect)
-    
+
     def _draw_fires(self, env: GridWorld):
         """Draw fire as orange-red triangles"""
 
@@ -295,7 +295,7 @@ class Renderer:
             self.screen.blit(current_frame, (x, y))
 
         self.fire_frames_tick += 1
-    
+
     def _draw_keys(self, env: GridWorld):
         """Draw keys as yellow circles"""
         for pos in env.keys:
@@ -304,7 +304,7 @@ class Renderer:
                 x = pos[0] * self.tile_size
                 y = pos[1] * self.tile_size
                 self.screen.blit(self.key_img, (x,y))
-    
+
     def _draw_chests(self, env: GridWorld):
         """Draw chests as brown rectangles"""
         for pos in env.chests:
@@ -321,7 +321,7 @@ class Renderer:
                 self.screen.blit(self.chest_close_img, (x, y))
             elif not is_closed and self.chest_open_img:
                 self.screen.blit(self.chest_open_img, (x, y))
-    
+
     def _draw_monsters(self, env: GridWorld):
         """Draw monsters as purple diamonds"""
 
@@ -352,7 +352,15 @@ class Renderer:
             text_surface = self.font.render(line, True, COL_TEXT)
             self.screen.blit(text_surface, (10, y_offset + i * 22))
 
-    def draw_menu(self, selected_agent, selected_level):
+    def draw_menu(self, selected_agent, selected_level, use_intrinsic_reward=False):
+        """
+        Draw the main menu with agent, level, and intrinsic reward selection.
+
+        Args:
+            selected_agent: Index of selected agent
+            selected_level: Selected level number
+            use_intrinsic_reward: Whether intrinsic reward is enabled
+        """
         # Background
         if self.menu_bg:
             self.screen.blit(self.menu_bg, (0, 0))
@@ -363,24 +371,34 @@ class Renderer:
         title = self.big_font.render("GridWorld RL", True, (255, 255, 255))
         self.screen.blit(
             title,
-            (self.width // 2 - title.get_width() // 2, 120)
+            (self.width // 2 - title.get_width() // 2, 100)
         )
+
+        # Intrinsic reward status indicator
+        intrinsic_status = "ON" if use_intrinsic_reward else "OFF"
+        intrinsic_color = (100, 255, 100) if use_intrinsic_reward else (200, 200, 200)
 
         # Menu info
         lines = [
             f"Agent: {AGENTS[selected_agent]}   (↑ ↓)",
             f"Level: {selected_level}   (← →)",
+            f"Intrinsic Reward: {intrinsic_status}   (I)",
             "",
             "Press ENTER to start",
             "Press ESC to quit"
         ]
 
         for i, text in enumerate(lines):
-            color = (200, 200, 200)
+            # Special color for intrinsic reward line
+            if i == 2:
+                color = intrinsic_color
+            else:
+                color = (200, 200, 200)
+
             surface = self.font.render(text, True, color)
             self.screen.blit(
                 surface,
-                (self.width // 2 - surface.get_width() // 2, 220 + i * 30)
+                (self.width // 2 - surface.get_width() // 2, 200 + i * 30)
             )
 
         pygame.display.flip()
@@ -388,7 +406,7 @@ class Renderer:
     def tick(self, fps: int):
         """Control frame rate"""
         self.clock.tick(fps)
-    
+
     def quit(self):
         """Clean up Pygame"""
         pygame. quit()

@@ -10,6 +10,7 @@ class VisitCounter:
     def __init__(self, intrinsic_strength: float = 0.1):
         self.intrinsic_strength = intrinsic_strength
         self.visit_counts: Dict[Tuple, int] = {}      # (State / Number of Visit)
+        self.step_penalty = 0.01
 
     def reset_counter(self):
         """Clear the calculation at the end of each episode"""
@@ -19,18 +20,21 @@ class VisitCounter:
         """
         Record a visit to a state and return the visit count.
         """
-        if state not in self.visit_counts:
-            self.visit_counts[state] = 0
-        self.visit_counts[state] += 1
-        return self.visit_counts[state]
+        intrinsic_state = (state[0], state[1])
+        if intrinsic_state not in self.visit_counts:
+            self.visit_counts[intrinsic_state] = 0
+        self.visit_counts[intrinsic_state] += 1
+        return self.visit_counts[intrinsic_state]
 
     def get_intrinsic_reward(self, state: Tuple) -> float:
         """
         Calculate intrinsic reward for visiting a state.
         Formula: r_i = intrinsic_strength / sqrt(n(s) + 1)
         """
-        number_of_visit = self.visit_counts.get(state, 0)
+        intrinsic_state = (state[0], state[1])
+        number_of_visit = self.visit_counts.get(intrinsic_state, 0)
         return self.intrinsic_strength / math.sqrt(number_of_visit + 1)
 
     def get_visit_count(self, state: Tuple) -> int:
-        return self.visit_counts.get(state, 0)
+        intrinsic_state = (state[0], state[1])
+        return self.visit_counts.get(intrinsic_state, 0)

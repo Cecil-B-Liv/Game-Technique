@@ -1,9 +1,8 @@
 """
-Main entry point for GridWorld Q-Learning
+Main entry point for GridWorld Q-Learning with Intrinsic Reward support
 """
 
 import random
-
 import pygame
 
 from Assignment3.Part1.src.environment import GridWorld
@@ -16,13 +15,15 @@ from Assignment3.Part1.src.constants import LEVELS, AGENTS, MAX_LEVEL
 from Assignment3.Part1.src.config import load_config
 
 
-
 def main():
-    """Main function"""
+    """Main function with intrinsic reward toggle"""
     running = True
-    # User choice
+
+    # User choices
     selected_agent = 0
     selected_level = 0
+    use_intrinsic_reward = False  # New toggle for intrinsic reward
+    intrinsic_strength = 0.1  # Default intrinsic reward strength
 
     # Create renderer
     renderer = Renderer(tile_size=48)
@@ -52,6 +53,13 @@ def main():
                     selected_level = min(MAX_LEVEL, selected_level + 1)
                     print(f"Level: {selected_level}")
 
+                # Toggle intrinsic reward (I key)
+                if event.key == pygame.K_i:
+                    use_intrinsic_reward = not use_intrinsic_reward
+                    status = "ON" if use_intrinsic_reward else "OFF"
+                    print(f"Intrinsic Reward: {status}")
+
+                # Start training
                 if event.key == pygame.K_RETURN:
                     # Load config for selected level
                     config_file = f"config_level{selected_level}.json"
@@ -71,7 +79,9 @@ def main():
                             gamma=config.gamma,
                             epsilon_start=config.epsilon_start,
                             epsilon_end=config.epsilon_end,
-                            epsilon_decay_episodes=config.epsilon_decay_episodes
+                            epsilon_decay_episodes=config.epsilon_decay_episodes,
+                            # use_intrinsic_reward=use_intrinsic_reward,
+                            # intrinsic_strength=intrinsic_strength
                         )
                     else:
                         agent = QLearningAgent(
@@ -79,29 +89,40 @@ def main():
                             gamma=config.gamma,
                             epsilon_start=config.epsilon_start,
                             epsilon_end=config.epsilon_end,
-                            epsilon_decay_episodes=config.epsilon_decay_episodes
+                            epsilon_decay_episodes=config.epsilon_decay_episodes,
+                            use_intrinsic_reward=use_intrinsic_reward,
+                            intrinsic_strength=intrinsic_strength
                         )
 
-                    print(f"Starting GridWorld {AGENTS[selected_agent]}")
+                    intrinsic_status = "WITH" if use_intrinsic_reward else "WITHOUT"
+                    print(f"\nStarting GridWorld {AGENTS[selected_agent]} ({intrinsic_status} Intrinsic Reward)")
                     print(f"Level: {selected_level}")
                     print(f"Episodes: {config.episodes}")
                     print(f"Alpha: {config.alpha}, Gamma: {config.gamma}")
                     print(f"Epsilon: {config.epsilon_start} → {config.epsilon_end}")
+                    if use_intrinsic_reward:
+                        print(f"Intrinsic Strength: {intrinsic_strength}")
                     print()
 
                     # Create environment
                     env = GridWorld(level_layout)
 
                     # Create trainer
-                    trainer = Trainer(env, agent, renderer, config, level=selected_level, agent_name=AGENTS[selected_agent])
+                    trainer = Trainer(
+                        env, agent, renderer, config,
+                        level=selected_level,
+                        agent_name=AGENTS[selected_agent]
+                    )
 
                     print("Training started. Press V to toggle speed, R to reset, ESC to quit.")
                     trainer.train()
 
+                # Quit
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
-        renderer.draw_menu(selected_agent, selected_level)
+        # Draw menu with intrinsic reward status
+        renderer.draw_menu(selected_agent, selected_level, use_intrinsic_reward)
     
     print("End Game")
     renderer.quit()
