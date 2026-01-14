@@ -1,13 +1,13 @@
 {
-  "episodes": 800,
-  "alpha": 0.2,
-  "gamma": 0.95,
+  "episodes": 1800,
+  "alpha": 0.12,
+  "gamma": 0.98,
   "epsilonStart": 1.0,
-  "epsilonEnd": 0.05,
-  "epsilonDecayEpisodes": 700,
-  "maxStepsPerEpisode":  400,
-  "fpsVisual": 30,
-  "fpsFast": 240,
+  "epsilonEnd": 0.1,
+  "epsilonDecayEpisodes": 1600,
+  "maxStepsPerEpisode": 600,
+  "fpsVisual": 20,
+  "fpsFast": 180,
   "tileSize": 48,
   "seed": 42
 }

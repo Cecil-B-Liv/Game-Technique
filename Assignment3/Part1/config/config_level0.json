@@ -1,5 +1,5 @@
 {
-  "episodes": 800,
+  "episodes": 500,
   "alpha": 0.2,
   "gamma": 0.95,
   "epsilonStart": 1.0,
