@@ -36,7 +36,7 @@ class DirectionalEnv(BaseArenaEnv):
         super().__init__(render_mode)
         
         # Discrete(6) means integers 0, 1, 2, 3, 4, 5
-        self.action_space = spaces. Discrete(6)
+        self.action_space = spaces.Discrete(6)
         
     def step(self, action):
         """
