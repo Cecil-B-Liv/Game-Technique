@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
-from odkfkdof.directional_env import DirectionalEnv
+from env.directional_env import DirectionalEnv
 
 
 def train_directional_ppo():
