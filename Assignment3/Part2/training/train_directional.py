@@ -1,5 +1,5 @@
 """
-Training script for directional movement control agent.
+Training script for directional movement control agent. 
 """
 
 import os
@@ -18,7 +18,7 @@ def train_directional_ppo():
     os.makedirs("models", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
     
-    n_envs = 4
+    n_envs = 16
     
     print("Creating training environments...")
     env = make_vec_env(
@@ -36,7 +36,7 @@ def train_directional_ppo():
     # Network architecture
     policy_kwargs = dict(
         net_arch=dict(
-            pi=[256, 256, 128],  # 3 layers
+            pi=[256, 256, 128],
             vf=[256, 256, 128]
         )
     )
@@ -46,20 +46,19 @@ def train_directional_ppo():
         "MlpPolicy",
         env,
         policy_kwargs=policy_kwargs,
-        learning_rate=1e-4,       # Lower for stability
+        learning_rate=1e-4,
         n_steps=2048,
         batch_size=64,
         n_epochs=10,
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2,
-        ent_coef=0.02,            # More exploration
+        ent_coef=0.02,
         verbose=1,
         tensorboard_log="./logs/directional_ppo",
         device="auto"
     )
     
-    # Only save best model
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path="./models/directional/",
@@ -75,12 +74,12 @@ def train_directional_ppo():
     print("TRAINING - DIRECTIONAL CONTROL (PPO)")
     print("=" * 60)
     print(f"Parallel environments: {n_envs}")
-    print(f"Total timesteps: 1,500,000")
-    print(f"Best model saved to:  ./models/directional/best_model.zip")
+    print(f"Total timesteps: 3,000,000")
+    print(f"Best model saved to: ./models/directional/best_model.zip")
     print("=" * 60 + "\n")
     
     model.learn(
-        total_timesteps=1_500_000,
+        total_timesteps=3_000_000,  # Extended from 1. 5M to 3M
         callback=eval_callback,
         progress_bar=True
     )
@@ -98,5 +97,5 @@ def train_directional_ppo():
     eval_env.close()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     train_directional_ppo()

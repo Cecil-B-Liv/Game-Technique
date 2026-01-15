@@ -1,3 +1,4 @@
+a
 Train directional agent
 python training/train_directional.py
 Saves to:  ./models/directional/best_model.zip
@@ -22,3 +23,4 @@ python evaluation/evaluate_rotation.py --mode play
 TensorBoard (separate for each)
 tensorboard --logdir ./logs/directional/tensorboard
 tensorboard --logdir ./logs/rotation/tensorboard
+tensorboard --logdir ./logs
