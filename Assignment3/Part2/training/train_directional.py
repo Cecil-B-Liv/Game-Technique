@@ -88,7 +88,7 @@ def train_directional_ppo():
     print("\n" + "=" * 60)
     print("TRAINING COMPLETE!")
     print("=" * 60)
-    print(f"Best model saved to: ./models/directional/best_model. zip")
+    print(f"Best model saved to: ./models/directional/best_model.zip")
     print()
     print("To evaluate:")
     print("  python evaluation/evaluate_directional.py --mode eval --model ./models/directional/best_model")
