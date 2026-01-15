@@ -433,12 +433,16 @@ class Spawner:
         except pygame.error as e:
             print(f"Error loading image {image_path}: {e}")
             return
+        # Scale the image by 1.5x
+        scaled_image = pygame.transform.scale(image, 
+                                             (int(image.get_width() * 1.5), 
+                                              int(image.get_height() * 1.5)))
         
-        # Get the rect for the image and center it on the spawner position
-        image_rect = image.get_rect(center=(int(self.x), int(self.y)))
+        # Get the rect for the scaled image and center it on the spawner position
+        image_rect = scaled_image.get_rect(center=(int(self.x), int(self.y)))
         
         # Draw the animated sprite
-        screen.blit(image, image_rect)
+        screen.blit(scaled_image, image_rect)
         
         # Health bar
         bar_width = 50
