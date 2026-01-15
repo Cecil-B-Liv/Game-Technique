@@ -458,6 +458,7 @@ class Renderer:
         ax, ay = env.agent
         pos = (x_offset + ax * self.tile_size, ay * self.tile_size)
         self.screen.blit(current_frame, pos)
+        self.agent_down_frames_tick += 1
 
     def _draw_apples_offset(self, env: GridWorld, x_offset: int):
         """Draw apples with x offset"""
@@ -491,6 +492,7 @@ class Renderer:
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
+        self.fire_frames_tick += 1
 
     def _draw_keys_offset(self, env: GridWorld, x_offset: int):
         """Draw keys with x offset"""
@@ -532,6 +534,7 @@ class Renderer:
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
+        self.monster_frames_tick += 1
 
     def _draw_dual_hud(self, episode: int, steps1: int, steps2: int,
                        epsilon1: float, epsilon2: float,
