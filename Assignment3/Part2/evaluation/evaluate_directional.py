@@ -18,14 +18,14 @@ def evaluate_agent(model_path=DEFAULT_MODEL_PATH, num_episodes=5):
     
     env = DirectionalEnv(render_mode="human")
     
-    # Handle . zip extension
+    # Handle .zip extension
     if not model_path.endswith('. zip'):
         if os.path.exists(model_path + '.zip'):
             model_path = model_path + '.zip'
     
     print(f"Loading model from: {model_path}")
     try:
-        model = PPO. load(model_path)
+        model = PPO.load(model_path)
         print("Model loaded successfully!")
     except Exception as e: 
         print(f"Error loading model: {e}")
@@ -76,7 +76,7 @@ def evaluate_agent(model_path=DEFAULT_MODEL_PATH, num_episodes=5):
         
         score = info.get('score', 0)
         phase = info.get('phase', 1)
-        print(f"  Score: {score}, Phase: {phase}, Reward: {episode_reward:. 2f}, Steps: {step}")
+        print(f"  Score: {score}, Phase: {phase}, Reward: {episode_reward:.2f}, Steps: {step}")
         
         all_rewards.append(episode_reward)
         all_scores.append(score)
