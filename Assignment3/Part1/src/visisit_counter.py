@@ -10,6 +10,7 @@ class VisitCounter:
     def __init__(self, intrinsic_strength: float = 0.1):
         self.intrinsic_strength = intrinsic_strength
         self.visit_counts: Dict[Tuple, int] = {}      # (State / Number of Visit)
+        self.step_penalty = 0.01
 
     def reset_counter(self):
         """Clear the calculation at the end of each episode"""
