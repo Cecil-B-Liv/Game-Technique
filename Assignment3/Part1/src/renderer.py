@@ -49,6 +49,7 @@ class Renderer:
         self.chest_close_img = None
         self.chest_open_img = None
         self.key_img = None
+        self.rock_img = None
 
         # Animation
         self.agent_down_frames = []
@@ -80,6 +81,7 @@ class Renderer:
         chest_close_path = os.path.join(sprite_path, "chest_close.png")
         chest_open_path = os.path.join(sprite_path, "chest_open.png")
         key_path = os.path.join(sprite_path, "key.png")
+        rock_path = os.path.join(sprite_path, "rock.png")
 
         # Load menu img
         print("Load main menu img")
@@ -120,6 +122,14 @@ class Renderer:
             self.key_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
         else:
             print("Warning: key.png not found")
+
+        # Load menu img
+        print("Load rock img")
+        if os.path.exists(rock_path):
+            img = pygame.image.load(rock_path).convert_alpha()
+            self.rock_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
+        else:
+            print("Warning: rock.png not found")
 
     def load_animation(self):
         agent_down_frames_path = os.path.join(self.current_dir, "..", "sprites", "player", "player_move_down")
@@ -271,13 +281,9 @@ class Renderer:
     def _draw_rocks(self, env: GridWorld):
         """Draw rocks as gray squares"""
         for pos in env.rocks:
-            rect = pygame.Rect(
-                pos[0] * self.tile_size + 4,
-                pos[1] * self.tile_size + 4,
-                self.tile_size - 8,
-                self. tile_size - 8
-            )
-            pygame.draw.rect(self.screen, COL_ROCK, rect)
+            x = pos[0] * self.tile_size
+            y = pos[1] * self.tile_size
+            self.screen.blit(self.rock_img, (x, y))
     
     def _draw_fires(self, env: GridWorld):
         """Draw fire as orange-red triangles"""
