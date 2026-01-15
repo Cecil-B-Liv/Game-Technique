@@ -13,7 +13,7 @@ the agent must learn the relationship between rotation and movement.
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from envs.base_env import BaseArenaEnv
+from odkfkdof.base_env import BaseArenaEnv
 
 
 class RotationEnv(BaseArenaEnv):

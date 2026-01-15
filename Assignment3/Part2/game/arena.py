@@ -430,8 +430,36 @@ class Arena:
         """Render the game."""
         if not self.render_mode:
             return
+        
+        image_path = f"sprites/background/background.jpg"
+        try:
+            image = pygame.image.load(image_path)
+        except pygame.error as e:
+            print(f"Error loading image {image_path}: {e}")
+            return
 
-        self.screen.fill(BLACK)
+        # Calculate scale to fit screen (scale to width while maintaining aspect ratio)
+        screen_width = self.screen.get_width()
+        screen_height = self.screen.get_height()
+        
+        # Scale based on width to ensure full coverage
+        scale_factor = screen_width / image.get_width()
+        new_width = screen_width
+        new_height = int(image.get_height() * scale_factor)
+        
+        # If height is still too small, scale based on height instead
+        if new_height < screen_height:
+            scale_factor = screen_height / image.get_height()
+            new_height = screen_height
+            new_width = int(image.get_width() * scale_factor)
+        
+        # Scale the image
+        scaled_image = pygame.transform.scale(image, (new_width, new_height))
+        
+        # Center it on the screen
+        image_rect = scaled_image.get_rect(center=(screen_width // 2, screen_height // 2))
+        
+        self.screen.blit(scaled_image, image_rect)
 
         for spawner in self.spawners:
             spawner.draw(self.screen)
@@ -452,6 +480,7 @@ class Arena:
         spawners_text = self.font.render(
             f"Spawners: {len(self.spawners)}", True, WHITE)
         step_text = self.font.render(f"Step: {self.step_count}", True, WHITE)
+    
 
         self.screen.blit(phase_text, (10, 10))
         self.screen.blit(score_text, (10, 40))

@@ -3,7 +3,10 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from envs.directional_env import DirectionalEnv
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from env.directional_env import DirectionalEnv
 from stable_baselines3 import PPO
 import numpy as np
 import time

@@ -49,7 +49,7 @@ SPAWNER_SIZE = 30             # Half-width of spawner (it's a square)
 SPAWNER_HEALTH = 100          # How much damage spawner can take
 SPAWN_INTERVAL = 120          # Frames between enemy spawns (120 = 2 seconds)
 MAX_ENEMIES_PER_SPAWNER = 5   # Maximum active enemies from one spawner
-
+SPAWNER_ANIMATION_SPEED = 5
 # =============================================================================
 # PROJECTILE SETTINGS
 # =============================================================================

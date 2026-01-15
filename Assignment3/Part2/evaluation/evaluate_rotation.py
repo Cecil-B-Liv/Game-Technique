@@ -4,12 +4,11 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from envs.rotation_env import RotationEnv
+from env.rotation_env import RotationEnv
 from stable_baselines3 import PPO
 import numpy as np
 import time
 import pygame
-
 
 DEFAULT_MODEL_PATH = "./models/rotation/best_model"
 
