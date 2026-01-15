@@ -39,7 +39,7 @@ class Renderer:
         self.screen = pygame.display.set_mode((self.width, self.height))
         caption = "GridWorld - Dual Mode" if dual_mode else "GridWorld - Q-Learning"
         pygame.display.set_caption(caption)
-        self.clock = pygame. time.Clock()
+        self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("consolas", 18)
         self.big_font = pygame.font.SysFont("consolas", 36)
 
@@ -66,15 +66,12 @@ class Renderer:
         # Load assets automatically
         self.load_assets()
 
-
-
     def load_assets(self):
         print("Load still img")
         self.load_still_img()
 
         print("Load animation")
         self.load_animation()
-
 
     def load_still_img(self):
         sprite_path = os.path.join(self.current_dir, "..", "sprites")
@@ -109,7 +106,7 @@ class Renderer:
             print("Warning: chest_close.png not found")
 
         # Load chest open
-        print("Load close chest img")
+        print("Load open chest img")
         if os.path.exists(chest_open_path):
             img = pygame.image.load(chest_open_path).convert_alpha()
             self.chest_open_img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
@@ -141,7 +138,7 @@ class Renderer:
             print(f"Error: Folder {folder_path} not found.")
             return
 
-            # Get all image files and sort them to ensure correct order
+        # Get all image files and sort them to ensure correct order
         files = sorted([f for f in os.listdir(folder_path) if f.endswith(('.png', '.jpg'))])
 
         for filename in files:
@@ -151,6 +148,7 @@ class Renderer:
             self.monster_frames.append(img)
 
         print(f"Loaded {len(self.monster_frames)} frames for monster animation.")
+
     def fire_load_animation(self, folder_path: str):
         """
         Load fire animation
@@ -168,8 +166,7 @@ class Renderer:
             img = pygame.transform.scale(img, (self.tile_size, self.tile_size))
             self.fire_frames.append(img)
 
-        print(f"Loaded {len(self.fire_frames)} frames for agent animation.")
-
+        print(f"Loaded {len(self.fire_frames)} frames for fire animation.")
 
     def agent_load_animation(self, folder_path: str):
         """
@@ -203,6 +200,7 @@ class Renderer:
             epsilon: Current epsilon value
             total_reward: Total reward accumulated
             level: Level number for display
+            agent_name: Name of agent for display
         """
         # Background
         self.screen.fill(COL_BG)
@@ -249,21 +247,27 @@ class Renderer:
                 pygame.draw.rect(self.screen, COL_GRID, rect, 1)
 
     def _draw_agent(self, env: GridWorld):
-        """Draw the agent as a green square"""
+        """Draw the agent with animation"""
+        if not self.agent_down_frames:
+            return
+
         animation_cooldown = len(self.agent_down_frames) * 2
         frame_index = (self.agent_down_frames_tick // animation_cooldown) % len(self.agent_down_frames)
         current_frame = self.agent_down_frames[frame_index]
 
-        #Calculate position
+        # Calculate position
         ax, ay = env.agent
         pos = (ax * self.tile_size, ay * self.tile_size)
 
-        #Draw the frame
+        # Draw the frame
         self.screen.blit(current_frame, pos)
         self.agent_down_frames_tick += 1
 
     def _draw_apples(self, env: GridWorld):
-        """Draw apples as red circles (only if not collected)"""
+        """Draw apples (only if not collected)"""
+        if not self.apple_img:
+            return
+
         for pos, idx in env.apple_index.items():
             # Check if apple is still available (bit is set)
             if (env.apple_mask >> idx) & 1:
@@ -278,13 +282,12 @@ class Renderer:
                 pos[0] * self.tile_size + 4,
                 pos[1] * self.tile_size + 4,
                 self.tile_size - 8,
-                self. tile_size - 8
+                self.tile_size - 8
             )
             pygame.draw.rect(self.screen, COL_ROCK, rect)
 
     def _draw_fires(self, env: GridWorld):
-        """Draw fire as orange-red triangles"""
-
+        """Draw fire with animation"""
         if not self.fire_frames:
             return
 
@@ -300,16 +303,22 @@ class Renderer:
         self.fire_frames_tick += 1
 
     def _draw_keys(self, env: GridWorld):
-        """Draw keys as yellow circles"""
+        """Draw keys (only if not collected)"""
+        if not self.key_img:
+            return
+
         for pos in env.keys:
             # Only draw if this key hasn't been collected yet
             if pos not in env.collected_keys_positions:
                 x = pos[0] * self.tile_size
                 y = pos[1] * self.tile_size
-                self.screen.blit(self.key_img, (x,y))
+                self.screen.blit(self.key_img, (x, y))
 
     def _draw_chests(self, env: GridWorld):
-        """Draw chests as brown rectangles"""
+        """Draw chests (open or closed)"""
+        if not self.chest_close_img or not self.chest_open_img:
+            return
+
         for pos in env.chests:
             idx = env.chest_index[pos]
 
@@ -319,14 +328,16 @@ class Renderer:
             x = pos[0] * self.tile_size
             y = pos[1] * self.tile_size
 
-            # Draw appropriate image if available
-            if is_closed and self.chest_close_img:
+            # Draw appropriate image
+            if is_closed:
                 self.screen.blit(self.chest_close_img, (x, y))
-            elif not is_closed and self.chest_open_img:
+            else:
                 self.screen.blit(self.chest_open_img, (x, y))
 
     def _draw_monsters(self, env: GridWorld):
-        """Draw monsters as purple diamonds"""
+        """Draw monsters with animation"""
+        if not self.monster_frames:
+            return
 
         animation_cooldown = len(self.monster_frames) * 2
         frame_index = (self.monster_frames_tick // animation_cooldown) % len(self.monster_frames)
@@ -342,7 +353,7 @@ class Renderer:
     def _draw_hud(self, episode: int, step: int, epsilon: float,
                   total_reward: float, apples_left: int, level: int,
                   keys_held: int = 0, chests_left: int = 0,
-                  agent_name: str = "Unknow"):
+                  agent_name: str = "Unknown"):
         """Draw heads-up display with stats"""
         hud_lines = [
             f"Agent: {agent_name} | Level {level} | Ep {episode + 1} | Step {step} | ε={epsilon:.3f}",
@@ -361,7 +372,7 @@ class Renderer:
                   reward1: float, reward2: float,
                   level: int,
                   agent1_name: str, agent2_name: str):
-        """Draw two agents side-by-side"""
+        """Draw two agents side-by-side (dual mode built on normal mode)"""
         # Background
         self.screen.fill(COL_BG)
 
@@ -374,10 +385,10 @@ class Renderer:
             2
         )
 
-        # LEFT SIDE - Agent 1
+        # LEFT SIDE - Agent 1 (uses normal mode drawing with offset)
         self._draw_side(env1, 0, agent1_name)
 
-        # RIGHT SIDE - Agent 2
+        # RIGHT SIDE - Agent 2 (uses normal mode drawing with offset)
         self._draw_side(env2, self.grid_width, agent2_name)
 
         # Draw combined HUD at bottom
@@ -393,8 +404,11 @@ class Renderer:
         pygame.display.flip()
 
     def _draw_side(self, env: GridWorld, x_offset: int, agent_name: str):
-        """Draw one agent's environment at given x offset"""
-        # Draw grid lines
+        """
+        Draw one agent's environment at given x offset.
+        This uses the same drawing logic as normal mode, just with an offset.
+        """
+        # Draw grid lines (same as normal mode)
         for x in range(env.w):
             for y in range(env.h):
                 rect = pygame.Rect(
@@ -405,13 +419,13 @@ class Renderer:
                 )
                 pygame.draw.rect(self.screen, COL_GRID, rect, 1)
 
-        # Draw elements with offset
+        # Draw all elements with offset (mirrors normal mode)
         self._draw_rocks_offset(env, x_offset)
         self._draw_fires_offset(env, x_offset)
         self._draw_keys_offset(env, x_offset)
         self._draw_chests_offset(env, x_offset)
         self._draw_apples_offset(env, x_offset)
-        self._draw_monsters_offset(env, x_offset)
+        self._draw_monsters_offset(env, x_offset)  # Fixed to use current_monsters
         self._draw_agent_offset(env, x_offset)
 
         # Draw agent name at top with background
@@ -421,49 +435,23 @@ class Renderer:
         pygame.draw.rect(self.screen, (100, 100, 100), bg_rect, 2)
         self.screen.blit(name_surface, (x_offset + 10, 10))
 
-    def _draw_side_stats(self, env: GridWorld, x_offset: int, epsilon: float, reward: float, position: str = "top-left"):
-        """Draw statistics on the side"""
-        stats = [
-            f"ε: {epsilon:.3f}",
-            f"R: {reward:.1f}",
-            f"A: {env.get_apples_remaining()}",
-            f"K: {env.collected_keys}",
-            f"C: {env.get_chests_remaining()}"
-        ]
-        
-        # Calculate position based on placement
-        if position == "bottom-right":
-            # Position at bottom right of the grid
-            y_start = self.grid_height - len(stats) * 25 - 10
-            x_pos = x_offset + self.grid_width - 80
-        else:
-            # Default top-left
-            y_start = 40
-            x_pos = x_offset + 5
-        
-        for i, stat in enumerate(stats):
-            stat_surface = self.font.render(stat, True, (255, 255, 255))
-            bg_rect = pygame.Rect(x_pos, y_start + i * 25, stat_surface.get_width() + 10, stat_surface.get_height() + 4)
-            pygame.draw.rect(self.screen, (0, 0, 0), bg_rect)
-            pygame.draw.rect(self.screen, (80, 80, 80), bg_rect, 1)
-            self.screen.blit(stat_surface, (x_pos + 5, y_start + i * 25 + 2))
-
     def _draw_agent_offset(self, env: GridWorld, x_offset: int):
-        """Draw agent with x offset"""
+        """Draw agent with x offset (same as normal mode)"""
         if not self.agent_down_frames:
             return
+
         animation_cooldown = len(self.agent_down_frames) * 2
         frame_index = (self.agent_down_frames_tick // animation_cooldown) % len(self.agent_down_frames)
         current_frame = self.agent_down_frames[frame_index]
         ax, ay = env.agent
         pos = (x_offset + ax * self.tile_size, ay * self.tile_size)
         self.screen.blit(current_frame, pos)
-        self.agent_down_frames_tick += 1
 
     def _draw_apples_offset(self, env: GridWorld, x_offset: int):
-        """Draw apples with x offset"""
+        """Draw apples with x offset (same as normal mode)"""
         if not self.apple_img:
             return
+
         for pos, idx in env.apple_index.items():
             if (env.apple_mask >> idx) & 1:
                 x = x_offset + pos[0] * self.tile_size
@@ -471,7 +459,7 @@ class Renderer:
                 self.screen.blit(self.apple_img, (x, y))
 
     def _draw_rocks_offset(self, env: GridWorld, x_offset: int):
-        """Draw rocks with x offset"""
+        """Draw rocks with x offset (same as normal mode)"""
         for pos in env.rocks:
             rect = pygame.Rect(
                 x_offset + pos[0] * self.tile_size + 4,
@@ -482,9 +470,10 @@ class Renderer:
             pygame.draw.rect(self.screen, COL_ROCK, rect)
 
     def _draw_fires_offset(self, env: GridWorld, x_offset: int):
-        """Draw fires with x offset"""
+        """Draw fires with x offset (same as normal mode)"""
         if not self.fire_frames:
             return
+
         animation_cooldown = len(self.fire_frames) * 1
         frame_index = (self.fire_frames_tick // animation_cooldown) % len(self.fire_frames)
         current_frame = self.fire_frames[frame_index]
@@ -492,12 +481,12 @@ class Renderer:
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
-        self.fire_frames_tick += 1
 
     def _draw_keys_offset(self, env: GridWorld, x_offset: int):
-        """Draw keys with x offset"""
+        """Draw keys with x offset (same as normal mode)"""
         if not self.key_img:
             return
+
         for pos in env.keys:
             # Only draw if this key hasn't been collected yet
             if pos not in env.collected_keys_positions:
@@ -506,35 +495,40 @@ class Renderer:
                 self.screen.blit(self.key_img, (x, y))
 
     def _draw_chests_offset(self, env: GridWorld, x_offset: int):
-        """Draw chests with x offset"""
+        """Draw chests with x offset (same as normal mode)"""
         if not self.chest_close_img or not self.chest_open_img:
             return
+
         for pos in env.chests:
             idx = env.chest_index[pos]
             # Check if chest is still closed (bit is set in chest_mask)
             is_closed = (env.chest_mask >> idx) & 1
-            
+
             if is_closed:
                 img = self.chest_close_img
             else:
                 img = self.chest_open_img
-            
+
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(img, (x, y))
 
     def _draw_monsters_offset(self, env: GridWorld, x_offset: int):
-        """Draw monsters with x offset"""
+        """
+        Draw monsters with x offset (FIXED: now uses current_monsters like normal mode)
+        """
         if not self.monster_frames:
             return
+
         animation_cooldown = len(self.monster_frames) * 2
         frame_index = (self.monster_frames_tick // animation_cooldown) % len(self.monster_frames)
         current_frame = self.monster_frames[frame_index]
-        for pos in env.monsters:
+
+        # FIX: Changed from env.monsters to env.current_monsters (matching normal mode)
+        for pos in env.current_monsters:
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
-        self.monster_frames_tick += 1
 
     def _draw_dual_hud(self, episode: int, steps1: int, steps2: int,
                        epsilon1: float, epsilon2: float,
@@ -544,25 +538,25 @@ class Renderer:
                        agent1_name: str, agent2_name: str):
         """Draw HUD for dual mode"""
         y_offset = self.grid_height + 8
-        
+
         # Left agent stats (condensed format)
         left_lines = [
-            f"{agent1_name} | Lv:{level} | Ep:{episode + 1} | Step:{steps1} | esp={epsilon1:.3f}",
+            f"{agent1_name} | Lv:{level} | Ep:{episode + 1} | Step:{steps1} | ε={epsilon1:.3f}",
             f"Apple:{env1.get_apples_remaining()} Key:{env1.collected_keys} Chest:{env1.get_chests_remaining()} | Return={reward1:.2f}",
             "V=speed | ESC=quit"
         ]
-        
+
         for i, line in enumerate(left_lines):
             text_surface = self.font.render(line, True, COL_TEXT)
             self.screen.blit(text_surface, (10, y_offset + i * 22))
-        
+
         # Right agent stats (condensed format)
         right_lines = [
-            f"{agent2_name} | Lv:{level} | Ep:{episode + 1} | Step:{steps2} | esp={epsilon2:.3f}",
+            f"{agent2_name} | Lv:{level} | Ep:{episode + 1} | Step:{steps2} | ε={epsilon2:.3f}",
             f"Apple:{env2.get_apples_remaining()} Key:{env2.collected_keys} Chest:{env2.get_chests_remaining()} | Return={reward2:.2f}",
             "V=speed | ESC=quit"
         ]
-        
+
         x_right = self.grid_width + 10
         for i, line in enumerate(right_lines):
             text_surface = self.font.render(line, True, COL_TEXT)
@@ -677,4 +671,4 @@ class Renderer:
 
     def quit(self):
         """Clean up Pygame"""
-        pygame. quit()
+        pygame.quit()
