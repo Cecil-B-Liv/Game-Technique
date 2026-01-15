@@ -95,7 +95,7 @@ def main():
                     # Create trainer
                     trainer = Trainer(env, agent, renderer, config, level=selected_level, agent_name=AGENTS[selected_agent])
 
-                    print("Training started. Press V to toggle speed, R to reset, ESC to quit.")
+                    print("Training started.")
                     trainer.train()
 
                 if event.key == pygame.K_ESCAPE:
