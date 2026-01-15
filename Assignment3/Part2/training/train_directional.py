@@ -1,7 +1,6 @@
 """
 Training script for directional movement control agent. 
 """
-
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,7 +17,7 @@ def train_directional_ppo():
     os.makedirs("models", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
     
-    n_envs = 16
+    n_envs = 4
     
     print("Creating training environments...")
     env = make_vec_env(
@@ -79,7 +78,7 @@ def train_directional_ppo():
     print("=" * 60 + "\n")
     
     model.learn(
-        total_timesteps=3_000_000,  # Extended from 1. 5M to 3M
+        total_timesteps=3_000_000,  
         callback=eval_callback,
         progress_bar=True
     )
