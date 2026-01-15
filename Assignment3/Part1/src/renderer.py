@@ -53,6 +53,7 @@ class Renderer:
         self.chest_open_img = None
         self.key_img = None
         self.rock_img = None
+        self.dual_menu_bg = None
 
         # Animation
         self.agent_down_frames = []
@@ -77,6 +78,7 @@ class Renderer:
     def load_still_img(self):
         sprite_path = os.path.join(self.current_dir, "..", "sprites")
         menu_bg_path = os.path.join(sprite_path, "main_menu_bg.png")
+        dual_menu_bg_path = os.path.join(sprite_path, "dual_menu.png")
         apple_path = os.path.join(sprite_path, "apple.png")
         chest_close_path = os.path.join(sprite_path, "chest_close.png")
         chest_open_path = os.path.join(sprite_path, "chest_open.png")
@@ -88,6 +90,14 @@ class Renderer:
         if os.path.exists(menu_bg_path):
             img = pygame.image.load(menu_bg_path).convert()
             self.menu_bg = pygame.transform.scale(img, (self.width, self.height))
+        else:
+            print("Warning: main_menu_bg.png not found")
+
+        # Load menu img
+        print("Load dual menu img")
+        if os.path.exists(dual_menu_bg_path):
+            img = pygame.image.load(dual_menu_bg_path).convert()
+            self.dual_menu_bg = pygame.transform.scale(img, (self.width, self.height))
         else:
             print("Warning: main_menu_bg.png not found")
 
@@ -453,6 +463,8 @@ class Renderer:
         pos = (x_offset + ax * self.tile_size, ay * self.tile_size)
         self.screen.blit(current_frame, pos)
 
+        self.agent_down_frames_tick += 1
+
     def _draw_apples_offset(self, env: GridWorld, x_offset: int):
         """Draw apples with x offset (same as normal mode)"""
         if not self.apple_img:
@@ -467,13 +479,9 @@ class Renderer:
     def _draw_rocks_offset(self, env: GridWorld, x_offset: int):
         """Draw rocks with x offset (same as normal mode)"""
         for pos in env.rocks:
-            rect = pygame.Rect(
-                x_offset + pos[0] * self.tile_size + 4,
-                pos[1] * self.tile_size + 4,
-                self.tile_size - 8,
-                self.tile_size - 8
-            )
-            pygame.draw.rect(self.screen, COL_ROCK, rect)
+            x = x_offset + pos[0] * self.tile_size
+            y = pos[1] * self.tile_size
+            self.screen.blit(self.rock_img, (x, y))
 
     def _draw_fires_offset(self, env: GridWorld, x_offset: int):
         """Draw fires with x offset (same as normal mode)"""
@@ -487,6 +495,8 @@ class Renderer:
             x = x_offset + pos[0] * self.tile_size
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
+
+        self.fire_frames_tick += 1
 
     def _draw_keys_offset(self, env: GridWorld, x_offset: int):
         """Draw keys with x offset (same as normal mode)"""
@@ -536,6 +546,8 @@ class Renderer:
             y = pos[1] * self.tile_size
             self.screen.blit(current_frame, (x, y))
 
+        self.monster_frames_tick += 1
+
     def _draw_dual_hud(self, episode: int, steps1: int, steps2: int,
                        epsilon1: float, epsilon2: float,
                        reward1: float, reward2: float,
@@ -572,7 +584,10 @@ class Renderer:
                        agent1_type: int, agent1_intrinsic: bool,
                        agent2_type: int, agent2_intrinsic: bool):
         """Draw menu for dual mode configuration"""
-        self.screen.fill((10, 10, 10))
+        if self.dual_menu_bg:
+            self.screen.blit(self.dual_menu_bg, (0, 0))
+        else:
+            self.screen.fill((10, 10, 10))
 
         # Title
         title = self.big_font.render("GridWorld - Dual Mode", True, (255, 255, 255))
