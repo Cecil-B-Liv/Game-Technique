@@ -111,9 +111,9 @@ class QLearningAgent:
         total_reward = reward
 
         if self.use_intrinsic_reward:
-            # Record visit and get intrinsic reward
-            intrinsic_reward = self.visit_counter.get_intrinsic_reward(state)
-            self.visit_counter.visit(state)
+            # Record visit to next_state and get intrinsic reward
+            intrinsic_reward = self.visit_counter.get_intrinsic_reward(next_state)
+            self.visit_counter.visit(next_state)
             total_reward += intrinsic_reward
 
         current_q = self.q_table.get(state, action)

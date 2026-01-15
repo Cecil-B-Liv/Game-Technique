@@ -6,6 +6,7 @@ import random
 from typing import Tuple
 from Assignment3.Part1.src.q_table import QTable
 from Assignment3.Part1.src.constants import ALL_ACTIONS
+from Assignment3.Part1.src.visisit_counter import VisitCounter
 
 
 def linear_epsilon(episode: int, start: float, end: float, decay_episodes: int) -> float:
@@ -40,7 +41,9 @@ class SARSAAgent:
 
     def __init__(self, alpha: float, gamma: float,
                  epsilon_start: float, epsilon_end: float,
-                 epsilon_decay_episodes: int):
+                 epsilon_decay_episodes: int,
+                 use_intrinsic_reward: bool = False,
+                 intrinsic_strength: float = 0.1):
 
         self.alpha = alpha
         self.gamma = gamma
@@ -51,6 +54,14 @@ class SARSAAgent:
         self.q_table = QTable()
         self.current_episode = 0
         self.epsilon = epsilon_start
+
+        # Intrinsic reward components
+        self.use_intrinsic_reward = use_intrinsic_reward
+        self.visit_counter = VisitCounter(intrinsic_strength)
+
+    def reset_counter(self):
+        """Reset episode-specific counters (call at start of each episode)"""
+        self.visit_counter.reset_counter()
 
 
     def select_action(self, state: Tuple) -> int:
@@ -69,17 +80,26 @@ class SARSAAgent:
     def update(self, state: Tuple, action: int, reward: float,
                next_state: Tuple, next_action: int, done: bool):
         """
-        SARSA update rule (on-policy).
+        SARSA update rule (on-policy) with optional intrinsic reward.
 
         Q(s,a) ← Q(s,a) + α[r + γ·Q(s',a') - Q(s,a)]
         """
+        # Calculate total reward (environment + intrinsic)
+        total_reward = reward
+
+        if self.use_intrinsic_reward:
+            # Record visit to next_state and get intrinsic reward
+            intrinsic_reward = self.visit_counter.get_intrinsic_reward(next_state)
+            self.visit_counter.visit(next_state)
+            total_reward += intrinsic_reward
+
         current_q = self.q_table.get(state, action)
 
         if done:
-            target = reward
+            target = total_reward
         else:
             next_q = self.q_table.get(next_state, next_action)
-            target = reward + self.gamma * next_q
+            target = total_reward + self.gamma * next_q
 
         new_q = current_q + self.alpha * (target - current_q)
         self.q_table.set(state, action, new_q)
@@ -101,3 +121,4 @@ class SARSAAgent:
         self.q_table = QTable()
         self.current_episode = 0
         self.epsilon = self.epsilon_start
+        self.visit_counter.reset_counter()
