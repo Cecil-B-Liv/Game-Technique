@@ -13,7 +13,7 @@ the relationship between action and movement is direct.
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-from envs.base_env import BaseArenaEnv
+from odkfkdof.base_env import BaseArenaEnv
 
 
 class DirectionalEnv(BaseArenaEnv):

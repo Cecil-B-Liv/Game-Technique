@@ -8,10 +8,12 @@ Each class represents a game object with:
 - Drawing/rendering
 """
 
+import random
 import pygame
 import math
 import numpy as np
 from game.constants import *
+
 
 
 # =============================================================================
@@ -200,47 +202,54 @@ class Player:
         Draw player on the screen.
         
         Draws:
-        1. A triangle pointing in the facing direction
+        1. A rotated ship image pointing in the facing direction
         2. A health bar above the player
+        3. Different ship sprite based on damage level (4 stages)
         
         Args:
-            screen:  Pygame surface to draw on
+            screen: Pygame surface to draw on
         """
-        rad = math.radians(self. angle)
+        # Determine damage stage based on health (4 stages: 100%, 75%, 50%, 25%)
+        health_ratio = self.health / PLAYER_MAX_HEALTH
+        if health_ratio > 0.75:
+            damage_stage = 0  # Full health
+        elif health_ratio > 0.5:
+            damage_stage = 1  # 25% damage
+        elif health_ratio > 0.25:
+            damage_stage = 2  # 50% damage
+        else:
+            damage_stage = 3  # 75% damage
         
-        # Calculate three points of the triangle
-        # Front point (tip of triangle)
-        front = (
-            self.x + math.cos(rad) * self.size,
-            self.y - math. sin(rad) * self.size
-        )
-        # Back-left point (2. 5 radians offset ≈ 143 degrees)
-        back_left = (
-            self.x + math.cos(rad + 2.5) * self.size * 0.7,
-            self.y - math.sin(rad + 2.5) * self.size * 0.7
-        )
-        # Back-right point
-        back_right = (
-            self.x + math.cos(rad - 2.5) * self.size * 0.7,
-            self.y - math.sin(rad - 2.5) * self.size * 0.7
-        )
+        # Load the appropriate sprite image
+        image_path = f"sprites/player/player_damage_{damage_stage}.png"
+        try:
+            image = pygame.image.load(image_path)
+        except pygame.error as e:
+            print(f"Error loading image {image_path}: {e}")
+            return
         
-        # Draw the triangle
-        pygame.draw.polygon(screen, BLUE, [front, back_left, back_right])
+        # The ship image points north, so we need to rotate it based on the angle
+        # angle = 0 is east, so we add 90 to convert from north to east orientation
+        rotated_image = pygame.transform.rotate(image, self.angle - 90)
+        
+        # Get the rect for the rotated image and center it on the player position
+        image_rect = rotated_image.get_rect(center=(int(self.x), int(self.y)))
+        
+        # Draw the rotated image
+        screen.blit(rotated_image, image_rect)
         
         # Draw health bar above player
         bar_width = 40
         bar_height = 5
-        health_ratio = self.health / PLAYER_MAX_HEALTH  # 0.0 to 1.0
         
         # Red background (shows missing health)
-        pygame.draw. rect(screen, RED, 
-                        (self.x - bar_width//2, self. y - self.size - 15, 
-                         bar_width, bar_height))
+        pygame.draw.rect(screen, RED, 
+                        (self.x - bar_width // 2, self.y - self.size - 15, 
+                        bar_width, bar_height))
         # Green foreground (shows current health)
-        pygame.draw. rect(screen, GREEN,
-                        (self.x - bar_width//2, self. y - self.size - 15, 
-                         int(bar_width * health_ratio), bar_height))
+        pygame.draw.rect(screen, GREEN,
+                        (self.x - bar_width // 2, self.y - self.size - 15, 
+                        int(bar_width * health_ratio), bar_height))
 
 
 # =============================================================================
@@ -270,6 +279,8 @@ class Enemy:
         self.health = ENEMY_HEALTH
         self.size = ENEMY_SIZE
         self.spawner_id = spawner_id
+        self.angle = 0  # Direction enemy is facing (toward player)
+        self.sprite_variant = random.randint(0, 5)  # Random sprite (0-7, 8 total)
         
     def update(self, player_x, player_y):
         """
@@ -279,6 +290,7 @@ class Enemy:
         1. Calculate direction vector to player
         2. Normalize it (make length = 1)
         3. Multiply by speed
+        4. Calculate angle for sprite rotation
         
         Args:
             player_x, player_y: Current player position
@@ -295,6 +307,11 @@ class Enemy:
             # (dx/dist, dy/dist) is a unit vector pointing at player
             self.x += (dx / dist) * ENEMY_SPEED
             self.y += (dy / dist) * ENEMY_SPEED
+            
+            # Calculate angle in degrees (pointing toward player)
+            # atan2(dy, dx) returns angle in radians
+            # We subtract 90 because sprite points north, not east
+            self.angle = math.degrees(math.atan2(-dy, dx)) - 90
             
     def take_damage(self, damage):
         """Apply damage.  Returns True if enemy died."""
@@ -314,19 +331,36 @@ class Enemy:
         return dist < (self.size + player.size)
     
     def draw(self, screen):
-        """Draw enemy as a red circle with health bar."""
-        # Draw the enemy circle
-        pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.size)
+        """
+        Draw enemy as a rotated sprite pointing toward player with health bar.
+        Uses one of 8 random sprite variants.
+        """
+        # Load the enemy sprite image (one of 8 variants)
+        image_path = f"sprites/enemy/enemy_{self.sprite_variant}.png"
+        try:
+            image = pygame.image.load(image_path)
+        except pygame.error as e:
+            print(f"Error loading image {image_path}: {e}")
+            return
+        
+        # Rotate image based on angle toward player
+        rotated_image = pygame.transform.rotate(image, self.angle)
+        
+        # Get the rect for the rotated image and center it on the enemy position
+        image_rect = rotated_image.get_rect(center=(int(self.x), int(self.y)))
+        
+        # Draw the rotated image
+        screen.blit(rotated_image, image_rect)
         
         # Draw health bar
         bar_width = 30
         bar_height = 4
-        health_ratio = self. health / ENEMY_HEALTH
+        health_ratio = self.health / ENEMY_HEALTH
         pygame.draw.rect(screen, RED,
-                        (self.x - bar_width//2, self.y - self.size - 10, 
+                        (self.x - bar_width // 2, self.y - self.size - 10, 
                          bar_width, bar_height))
         pygame.draw.rect(screen, GREEN,
-                        (self.x - bar_width//2, self.y - self.size - 10,
+                        (self.x - bar_width // 2, self.y - self.size - 10,
                          int(bar_width * health_ratio), bar_height))
 
 
@@ -358,6 +392,8 @@ class Spawner:
         self.spawn_timer = SPAWN_INTERVAL  # Countdown to next spawn
         self.spawner_id = spawner_id
         self.active_enemies = 0  # How many enemies from this spawner are alive
+        self.animation_frame = 0  # Current frame (0-6, cycles through 7 frames)
+        self.animation_counter = 0  # Counter to control animation speed
         
     def update(self):
         """
@@ -368,8 +404,16 @@ class Spawner:
         - Return True (signal to spawn enemy)
         
         Only spawns if under the enemy limit. 
+        Also updates animation frame.
         """
         self.spawn_timer -= 1
+        
+        # Update animation (cycle through frames)
+        self.animation_counter += 1
+        if self.animation_counter >= SPAWNER_ANIMATION_SPEED:  # Adjust speed as needed
+            self.animation_counter = 0
+            self.animation_frame = (self.animation_frame + 1) % 7  # Cycle 0-6
+        
         if self.spawn_timer <= 0 and self.active_enemies < MAX_ENEMIES_PER_SPAWNER:
             self.spawn_timer = SPAWN_INTERVAL
             return True
@@ -381,26 +425,30 @@ class Spawner:
         return self.health <= 0
     
     def draw(self, screen):
-        """Draw spawner as a purple square with health bar."""
-        # Create rectangle (x, y is center, so offset by size)
-        rect = pygame.Rect(
-            self.x - self.size, 
-            self.y - self.size, 
-            self.size * 2, 
-            self.size * 2
-        )
-        pygame.draw.rect(screen, PURPLE, rect)        # Fill
-        pygame.draw.rect(screen, WHITE, rect, 2)      # Border (2 pixel width)
+        """Draw spawner as an animated portal sprite with health bar."""
+        # Load the current animation frame
+        image_path = f"sprites/spawner/portal1_frame_{self.animation_frame + 1}.png"
+        try:
+            image = pygame.image.load(image_path)
+        except pygame.error as e:
+            print(f"Error loading image {image_path}: {e}")
+            return
+        
+        # Get the rect for the image and center it on the spawner position
+        image_rect = image.get_rect(center=(int(self.x), int(self.y)))
+        
+        # Draw the animated sprite
+        screen.blit(image, image_rect)
         
         # Health bar
         bar_width = 50
         bar_height = 6
-        health_ratio = self. health / SPAWNER_HEALTH
+        health_ratio = self.health / SPAWNER_HEALTH
         pygame.draw.rect(screen, RED,
-                        (self.x - bar_width//2, self.y - self.size - 15, 
+                        (self.x - bar_width // 2, self.y - self.size - 15, 
                          bar_width, bar_height))
         pygame.draw.rect(screen, GREEN,
-                        (self.x - bar_width//2, self.y - self.size - 15,
+                        (self.x - bar_width // 2, self.y - self.size - 15,
                          int(bar_width * health_ratio), bar_height))
 
 

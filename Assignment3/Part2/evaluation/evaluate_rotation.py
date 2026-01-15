@@ -1,13 +1,13 @@
 """Evaluation script for rotation-based control agent."""
 
-from envs.rotation_env import RotationEnv
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from odkfkdof.rotation_env import RotationEnv
 from stable_baselines3 import PPO
 import numpy as np
 import time
 import pygame
-import os
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DEFAULT_MODEL_PATH = "./models/rotation/best_model"
 
