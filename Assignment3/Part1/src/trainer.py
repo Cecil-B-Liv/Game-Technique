@@ -195,7 +195,7 @@ class Trainer:
         plt.plot(self.episode_returns, alpha=0.4, label="Episode Return")
 
         # Moving average (smooth)
-        window = 20
+        window = int(self.config.episodes * 0.025)
         if len(self.episode_returns) >= window:
             ma = [
                 sum(self.episode_returns[i:i + window]) / window
@@ -205,7 +205,7 @@ class Trainer:
                 range(window - 1, len(self.episode_returns)),
                 ma,
                 linewidth=2,
-                label="Moving Avg (20)"
+                label=f"Moving Avg ({window})"
             )
 
         plt.xlabel("Episode")

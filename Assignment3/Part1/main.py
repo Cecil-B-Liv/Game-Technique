@@ -23,7 +23,7 @@ def main():
     selected_agent = 0
     selected_level = 0
     use_intrinsic_reward = False  # New toggle for intrinsic reward
-    intrinsic_strength = 0.1  # Default intrinsic reward strength
+    intrinsic_strength = 0.05  # Default intrinsic reward strength
 
     # Create renderer
     renderer = Renderer(tile_size=48)

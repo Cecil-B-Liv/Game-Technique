@@ -83,34 +83,34 @@ LEVEL3 = [
 LEVEL4 = [
     "S           ",
     "            ",
-    "    M   A   ",
+    "     M  A   ",
     "        A   ",
-    "  M     A   ",
     "        A   ",
-    "    M   A   ",
+    "        A   ",
+    "        A   ",
     "        A   "
 ]
 
 LEVEL5 = [
-    "S   R   M C ",
+    "S   R     C ",
     "    R       ",
     "A   RRRR  A ",
     "    R       ",
     "K   R  M  A ",
     "    R       ",
     "    R       ",
-    "  M         "
+    "            "
 ]
 
 LEVEL6 = [
-    "S           ",
-    "            ",
-    "    R       ",
-    "  A   R   A ",
-    "    R       ",
-    "            ",
-    "  M     M   ",
-    "    A   A   "
+    "S        A  ",
+    "  RRRRRRRR  ",
+    "  RA     KR ",
+    "  R      AR ",
+    "  RA  F   R ",
+    "  R   CA  RA",
+    "  R      AR ",
+    "    RRRRR   "
 ]
 
 # Normalize all levels to proper width
