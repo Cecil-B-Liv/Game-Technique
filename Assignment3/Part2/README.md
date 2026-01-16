@@ -1,4 +1,5 @@
-a
+Command for running the code file:
+
 Train directional agent
 python training/train_directional.py
 Saves to:  ./models/directional/best_model.zip

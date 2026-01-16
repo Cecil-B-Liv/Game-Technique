@@ -134,7 +134,7 @@ def evaluate_agent(model_path=DEFAULT_MODEL_PATH, num_episodes=20):
                     running = False
             screen.fill((30, 30, 30))
             # Title
-            title = big_font.render("EVALUATION METRICS - ROTATION CONTROL", True, (255, 215, 0))
+            title = big_font.render("EVALUATION METRICS - DIRECTIONAL CONTROL", True, (255, 215, 0))
             screen.blit(title, (label_x, y))
             y2 = y + 36
             # Separator
