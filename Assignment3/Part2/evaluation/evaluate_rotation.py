@@ -88,27 +88,72 @@ def evaluate_agent(model_path=DEFAULT_MODEL_PATH, num_episodes=20):
             f"| Score: {score} | Phase: {phase} | Reward: {episode_reward:.1f} | Steps: {step}")
         time.sleep(0.3)
 
-    print("\n" + "=" * 60)
-    print("EVALUATION METRICS - ROTATION CONTROL")
-    print("=" * 60)
-    print(f"Episodes Evaluated:     {num_episodes}")
-    print(
-        f"Average Reward:         {np.mean(all_rewards):.2f} ± {np.std(all_rewards):.2f}")
-    print(
-        f"Average Score:          {np.mean(all_scores):.2f} ± {np.std(all_scores):.2f}")
-    print(f"Average Phase Reached:  {np.mean(all_phases):.2f}")
-    print(f"Max Phase Achieved:     {max(all_phases)}")
-    print(f"Average Episode Length: {np. mean(all_steps):.0f} steps")
-    print(f"Best Score:             {max(all_scores)}")
-    print(f"Worst Score:             {min(all_scores)}")
-    print("=" * 60)
 
+ 
+    # Prepare evaluation metrics text
+    # Prepare metrics as (label, value) pairs for alignment
+    metrics_pairs = [
+        ("Episodes Evaluated:",      f"{num_episodes}"),
+        ("Average Reward:",          f"{np.mean(all_rewards):.2f} ± {np.std(all_rewards):.2f}"),
+        ("Average Score:",           f"{np.mean(all_scores):.2f} ± {np.std(all_scores):.2f}"),
+        ("Average Phase Reached:",   f"{np.mean(all_phases):.2f}"),
+        ("Max Phase Achieved:",      f"{max(all_phases)}"),
+        ("Average Episode Length:",  f"{np.mean(all_steps):.0f} steps"),
+        ("Best Score:",              f"{max(all_scores)}"),
+        ("Worst Score:",             f"{min(all_scores)}"),
+    ]
+
+    def show_metrics_scene(metrics_pairs):
+        pygame.init()
+        width, height = 700, 440
+        screen = pygame.display.set_mode((width, height))
+        pygame.display.set_caption("Evaluation Metrics")
+        font = pygame.font.SysFont(None, 28)
+        big_font = pygame.font.SysFont(None, 36, bold=True)
+        clock = pygame.time.Clock()
+        running = True
+        label_x = 40
+        value_x = 340  # fixed x for values for alignment
+        y = 30
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    running = False
+            screen.fill((30, 30, 30))
+            # Title
+            title = big_font.render("EVALUATION METRICS - ROTATION CONTROL", True, (255, 215, 0))
+            screen.blit(title, (label_x, y))
+            y2 = y + 36
+            # Separator
+            sep = font.render("=" * 60, True, (220, 220, 220))
+            screen.blit(sep, (label_x, y2))
+            y2 += 36
+            # Metrics
+            for label, value in metrics_pairs:
+                label_text = font.render(label, True, (220, 220, 220))
+                value_text = font.render(value, True, (220, 220, 220))
+                screen.blit(label_text, (label_x, y2))
+                screen.blit(value_text, (value_x, y2))
+                y2 += 36
+            # Separator
+            sep2 = font.render("=" * 60, True, (220, 220, 220))
+            screen.blit(sep2, (label_x, y2))
+            # Info
+            info_text = font.render("Press any key or close window to exit", True, (180, 180, 180))
+            screen.blit(info_text, (label_x, height - 25))
+            pygame.display.flip()
+            clock.tick(30)
+        pygame.quit()
+
+    show_metrics_scene(metrics_pairs)
     env.close()
 
     return {
         "avg_reward":  np.mean(all_rewards),
         "std_reward": np.std(all_rewards),
-        "avg_score": np. mean(all_scores),
+        "avg_score": np.mean(all_scores),
         "std_score": np.std(all_scores),
         "avg_phase": np.mean(all_phases),
         "max_phase": max(all_phases),
